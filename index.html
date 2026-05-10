@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ร้านไอดี One Piece</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0f5;
+  --muted: #7a7a9a;
+  --accent: #7c6af7;
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --green-bg: rgba(52,211,153,0.1);
+  --blue: #60a5fa;
+  --blue-bg: rgba(96,165,250,0.1);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.1);
+  --amber: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+}
+
+/* Layout */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 10;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 34px; height: 34px; background: var(--accent);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.logo-text { font-size: 16px; font-weight: 600; }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.sync-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted);
+  background: var(--surface2); padding: 5px 10px; border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.sync-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+.sync-dot.err { background: var(--red); animation: none; }
+.sync-dot.loading { background: var(--amber); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Nav tabs */
+.nav {
+  display: flex; gap: 2px; padding: 12px 16px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+}
+.nav-btn {
+  padding: 8px 18px; border-radius: 8px 8px 0 0;
+  border: none; background: transparent;
+  color: var(--muted); font-family: 'Sarabun', sans-serif;
+  font-size: 14px; cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+}
+.nav-btn:hover { color: var(--text); background: var(--surface2); }
+.nav-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+/* Main content */
+.main { padding: 20px 16px; max-width: 700px; margin: 0 auto; width: 100%; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 20px; }
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.stat .lbl { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.stat .val { font-size: 22px; font-weight: 600; }
+.val.green { color: var(--green); }
+.val.blue { color: var(--blue); }
+.val.muted { color: var(--muted); }
+
+/* Filters */
+.filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter {
+  padding: 5px 13px; border-radius: 20px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--muted); font-family: 'Sarabun', sans-serif; transition: all .15s;
+}
+.filter:hover { color: var(--text); border-color: var(--border2); }
+.filter.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ID list */
+.id-list { display: flex; flex-direction: column; gap: 6px; }
+.id-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 10px;
+  transition: border-color .15s;
+}
+.id-card:hover { border-color: var(--border2); }
+.id-card.sold { opacity: .4; }
+.id-account {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; color: var(--text); margin-bottom: 3px;
+}
+.id-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.id-pw { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+.id-note { font-size: 11px; color: var(--amber); }
+.badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+}
+.badge-android { background: var(--green-bg); color: var(--green); }
+.badge-ios { background: var(--blue-bg); color: var(--blue); }
+.badge-sold { background: rgba(255,255,255,0.05); color: var(--muted); }
+.gem { font-size: 12px; color: var(--muted); }
+.gem span { color: var(--accent2); font-weight: 500; }
+
+.id-actions { display: flex; align-items: center; gap: 8px; }
+.sell-btn {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--accent); background: transparent;
+  color: var(--accent2); font-family: 'Sarabun', sans-serif; white-space: nowrap;
+  transition: all .15s;
+}
+.sell-btn:hover { background: var(--accent); color: #fff; }
+.sell-btn:disabled { opacity: .3; cursor: not-allowed; border-color: var(--border); color: var(--muted); }
+.sold-tag { font-size: 11px; color: var(--muted); }
+
+/* Empty */
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* Add form */
+.form-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+}
+.form-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.form-grid.full { grid-template-columns: 1fr; }
+.field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; }
+.field input, .field select {
+  width: 100%; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 14px;
+  outline: none; transition: border-color .15s;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: var(--surface2); }
+.submit-btn {
+  margin-top: 14px; padding: 10px 22px; border-radius: 8px;
+  background: var(--accent); border: none; color: #fff;
+  font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s;
+}
+.submit-btn:hover { opacity: .85; }
+.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* History */
+.hist-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 6px;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px;
+}
+.hist-account { font-family: 'IBM Plex Mono', monospace; font-size: 13px; margin-bottom: 3px; }
+.hist-time { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
+
+/* Modal */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; z-index: 100; padding: 16px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 24px; max-width: 340px; width: 100%;
+}
+.modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+.modal p strong { color: var(--text); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn-cancel {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border2);
+  background: transparent; color: var(--muted); font-family: 'Sarabun', sans-serif;
+  font-size: 13px; cursor: pointer;
+}
+.btn-ok {
+  padding: 8px 18px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; font-family: 'Sarabun', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 18px; font-size: 13px;
+  opacity: 0; transition: all .3s; z-index: 200; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* Setup screen */
+.setup {
+  max-width: 500px; margin: 60px auto; padding: 0 20px;
+}
+.setup-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px;
+}
+.setup h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.setup p { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 20px; }
+.step {
+  background: var(--surface2); border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 10px; font-size: 13px; line-height: 1.8;
+}
+.step strong { color: var(--accent2); }
+.step code {
+  background: rgba(124,106,247,0.15); color: var(--accent2);
+  padding: 1px 6px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.config-input {
+  width: 100%; padding: 9px 12px; border-radius: 8px; margin-top: 8px;
+  border: 1px solid var(--border2); background: var(--bg);
+  color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  outline: none;
+}
+.config-input:focus { border-color: var(--accent); }
+.save-config-btn {
+  width: 100%; margin-top: 16px; padding: 11px;
+  background: var(--accent); border: none; border-radius: 8px;
+  color: #fff; font-family: 'Sarabun', sans-serif; font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+.skip-btn {
+  width: 100%; margin-top: 8px; padding: 9px;
+  background: transparent; border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--muted); font-family: 'Sarabun', sans-serif; font-size: 13px; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:var(--muted)">กำลังโหลด...</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3>⚠️ ยืนยันการขาย</h3>
+    <p id="modal-text"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-ok" onclick="doSell()">ยืนยัน — ล็อกทันที</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, get, update } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+let db = null;
+let ids = [];
+let history = [];
+let filterOs = 'all';
+let filterStatus = 'available';
+let pendingId = null;
+let currentTab = 'stock';
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('fb_config') || 'null'); } catch(e) { return null; }
+}
+function saveConfig(cfg) { localStorage.setItem('fb_config', JSON.stringify(cfg)); }
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sdot');
+  const lbl = document.getElementById('slbl');
+  if(!dot) return;
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = msg;
+}
+
+// ---- RENDER FUNCTIONS ----
+
+function renderApp() {
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">⚔️</div>
+        <div>
+          <div class="logo-text">ร้านไอดี One Piece</div>
+          <div class="logo-sub">ระบบจัดการสต็อก</div>
+        </div>
+      </div>
+      <div class="sync-badge">
+        <div class="sync-dot loading" id="sdot"></div>
+        <span id="slbl">กำลังเชื่อมต่อ...</span>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" id="nav-stock" onclick="switchTab('stock')">📦 สต็อก</button>
+      <button class="nav-btn" id="nav-add" onclick="switchTab('add')">➕ เพิ่มไอดี</button>
+      <button class="nav-btn" id="nav-history" onclick="switchTab('history')">📋 ประวัติ</button>
+    </div>
+    <div class="main">
+      <div id="stats-area"></div>
+      <div id="tab-stock">
+        <div class="filters" id="filters"></div>
+        <div class="id-list" id="id-list"><div class="empty"><div class="empty-icon">⏳</div>กำลังโหลด...</div></div>
+      </div>
+      <div id="tab-add" style="display:none"></div>
+      <div id="tab-history" style="display:none"></div>
+    </div>
+  `;
+  renderAdd();
+}
+
+function switchTab(t) {
+  currentTab = t;
+  ['stock','add','history'].forEach(x => {
+    document.getElementById('tab-'+x).style.display = x===t ? 'block' : 'none';
+    const btn = document.getElementById('nav-'+x);
+    if(btn) btn.className = 'nav-btn' + (x===t?' active':'');
+  });
+  if(t==='history') renderHistory();
+  if(t==='stock') renderList();
+  if(t==='stock') renderStats();
+}
+window.switchTab = switchTab;
+
+function renderStats() {
+  const avail = ids.filter(x=>!x.sold).length;
+  const sold = ids.filter(x=>x.sold).length;
+  const andA = ids.filter(x=>!x.sold&&x.os==='Android').length;
+  const iosA = ids.filter(x=>!x.sold&&x.os==='iOS').length;
+  const el = document.getElementById('stats-area');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="lbl">พร้อมขาย</div><div class="val green">${avail}</div></div>
+      <div class="stat"><div class="lbl">ขายแล้ว</div><div class="val muted">${sold}</div></div>
+      <div class="stat"><div class="lbl">Android เหลือ</div><div class="val green">${andA}</div></div>
+      <div class="stat"><div class="lbl">iOS เหลือ</div><div class="val blue">${iosA}</div></div>
+    </div>
+  `;
+}
+
+function renderFilters() {
+  const el = document.getElementById('filters');
+  if(!el) return;
+  el.innerHTML = `
+    <button class="filter ${filterOs==='all'?'on':''}" onclick="setF('os','all')">ทั้งหมด</button>
+    <button class="filter ${filterOs==='Android'?'on':''}" onclick="setF('os','Android')">Android</button>
+    <button class="filter ${filterOs==='iOS'?'on':''}" onclick="setF('os','iOS')">iOS</button>
+    <button class="filter ${filterStatus==='available'?'on':''}" onclick="setF('status','available')">พร้อมขาย</button>
+    <button class="filter ${filterStatus==='sold'?'on':''}" onclick="setF('status','sold')">ขายแล้ว</button>
+    <button class="filter ${filterStatus==='all'?'on':''}" onclick="setF('status','all')">ดูทั้งหมด</button>
+  `;
+}
+window.setF = function(type, val) {
+  if(type==='os') filterOs=val; else filterStatus=val;
+  renderFilters(); renderList();
+};
+
+function renderList() {
+  const el = document.getElementById('id-list');
+  if(!el) return;
+  let list = ids.filter(x => {
+    if(filterOs!=='all' && x.os!==filterOs) return false;
+    if(filterStatus==='available' && x.sold) return false;
+    if(filterStatus==='sold' && !x.sold) return false;
+    return true;
+  });
+  if(!list.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div>ไม่มีไอดีในหมวดนี้</div>'; return; }
+  el.innerHTML = list.map(x => `
+    <div class="id-card ${x.sold?'sold':''}">
+      <div>
+        <div class="id-account">${x.account}</div>
+        <div class="id-meta">
+          <span class="id-pw">${x.pw}</span>
+          <span class="badge ${x.os==='Android'?'badge-android':'badge-ios'}">${x.os}</span>
+          <span class="gem">💎 <span>${x.gem.toLocaleString()}</span></span>
+          ${x.note ? `<span class="id-note">✦ ${x.note}</span>` : ''}
+        </div>
+      </div>
+      <div class="id-actions">
+        ${x.sold
+          ? `<span class="sold-tag badge badge-sold">ขายแล้ว</span>`
+          : `<button class="sell-btn" onclick="confirmSell('${x.id}')">ขายแล้ว</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAdd() {
+  const el = document.getElementById('tab-add');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="form-card">
+      <div class="form-title">➕ เพิ่มไอดีใหม่</div>
+      <div class="form-grid full"><div class="field"><label>ไอดี / อีเมล</label><input id="f-id" type="text" placeholder="910398425@whomail.asia"></div></div>
+      <div class="form-grid full"><div class="field"><label>รหัสผ่าน</label><input id="f-pw" type="text" placeholder="รหัสผ่าน"></div></div>
+      <div class="form-grid">
+        <div class="field"><label>ระบบ</label><select id="f-os"><option>Android</option><option>iOS</option></select></div>
+        <div class="field"><label>จำนวนเพชร</label><input id="f-gem" type="number" placeholder="8400"></div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>ราคาขาย (บาท)</label><input id="f-price" type="number" placeholder="350"></div>
+        <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="f-note" type="text" placeholder="ลิ้ม yamato"></div>
+      </div>
+      <button class="submit-btn" id="add-btn" onclick="addID()">💾 บันทึกไอดี</button>
+    </div>
+  `;
+}
+
+function renderHistory() {
+  const el = document.getElementById('tab-history');
+  if(!el) return;
+  if(!history.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📭</div>ยังไม่มีประวัติการขาย</div>'; return; }
+  el.innerHTML = history.map(x => `
+    <div class="hist-card">
+      <div>
+        <div class="hist-account">${x.account}</div>
+        <div class="id-meta">
+          <span class="badge ${x.os==='Android'?'badge-android':'badge-ios'}">${x.os}</span>
+          <span class="gem">💎 <span>${x.gem.toLocaleString()}</span></span>
+          ${x.note?`<span class="id-note">✦ ${x.note}</span>`:''}
+          ${x.price?`<span style="font-size:11px;color:var(--amber)">฿${x.price}</span>`:''}
+        </div>
+      </div>
+      <div class="hist-time">${x.soldAt||''}</div>
+    </div>
+  `).join('');
+}
+
+// ---- FIREBASE ----
+
+function initFirebase(config) {
+  const app = initializeApp(config);
+  db = getDatabase(app);
+
+  // Real-time listener for IDs
+  onValue(ref(db, 'ids'), snap => {
+    const data = snap.val();
+    ids = data ? Object.values(data) : [];
+    renderStats();
+    renderFilters();
+    renderList();
+    setSyncStatus('', 'ซิงค์แล้ว ✓');
+  }, err => {
+    setSyncStatus('err', 'เชื่อมต่อไม่ได้');
+  });
+
+  // Real-time listener for history
+  onValue(ref(db, 'history'), snap => {
+    const data = snap.val();
+    history = data ? Object.values(data).sort((a,b) => b.ts - a.ts) : [];
+    if(currentTab === 'history') renderHistory();
+  });
+}
+
+window.confirmSell = function(idVal) {
+  const item = ids.find(x => x.id === idVal);
+  if(!item || item.sold) return;
+  pendingId = idVal;
+  document.getElementById('modal-text').innerHTML =
+    `<strong>${item.account}</strong><br>รหัส: ${item.pw}<br>เพชร ${item.gem.toLocaleString()} · ${item.os}<br><br>ไอดีนี้จะถูก <strong style="color:var(--accent2)">ล็อกทันที</strong> และซิงค์ให้ทุกคนเห็นพร้อมกัน`;
+  document.getElementById('modal').classList.add('show');
+};
+
+window.closeModal = function() {
+  document.getElementById('modal').classList.remove('show');
+  pendingId = null;
+};
+
+window.doSell = async function() {
+  if(!pendingId || !db) return;
+  const item = ids.find(x => x.id === pendingId);
+  if(!item) return;
+
+  // Double-check from Firebase before selling
+  const snap = await get(ref(db, 'ids/' + pendingId));
+  const live = snap.val();
+  if(live && live.sold) {
+    showToast('❌ ไอดีนี้ถูกขายไปแล้ว!', 'error');
+    closeModal();
+    return;
+  }
+
+  const now = new Date().toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+  const ts = Date.now();
+
+  await update(ref(db, 'ids/' + pendingId), { sold: true, soldAt: now });
+  await set(ref(db, 'history/' + ts), {
+    account: item.account, os: item.os, gem: item.gem,
+    price: item.price, note: item.note, soldAt: now, ts
+  });
+
+  showToast('✅ ล็อกไอดีแล้ว!', 'success');
+  closeModal();
+};
+
+window.addID = async function() {
+  const acc = document.getElementById('f-id').value.trim();
+  const pw = document.getElementById('f-pw').value.trim();
+  const os = document.getElementById('f-os').value;
+  const gem = parseInt(document.getElementById('f-gem').value) || 0;
+  const price = parseInt(document.getElementById('f-price').value) || 0;
+  const note = document.getElementById('f-note').value.trim();
+  if(!acc || !pw) { showToast('❌ กรุณาใส่ไอดีและรหัสผ่าน', 'error'); return; }
+  if(!db) { showToast('❌ ยังไม่ได้เชื่อมต่อ Firebase', 'error'); return; }
+
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  const id = 'op' + Date.now();
+  await set(ref(db, 'ids/' + id), { id, account: acc, pw, os, gem, price, note, sold: false, soldAt: null });
+
+  showToast('✅ เพิ่มไอดีแล้ว!', 'success');
+  ['f-id','f-pw','f-gem','f-price','f-note'].forEach(i => document.getElementById(i).value = '');
+  btn.disabled = false; btn.textContent = '💾 บันทึกไอดี';
+  switchTab('stock');
+};
+
+// ---- SETUP SCREEN ----
+
+function showSetup() {
+  document.getElementById('app').innerHTML = `
+    <div class="setup">
+      <div class="setup-card">
+        <h2>⚙️ ตั้งค่า Firebase</h2>
+        <p>ทำครั้งเดียว แล้วใช้ได้ทุกเครื่อง ทำตามขั้นตอนด้านล่างเลย</p>
+
+        <div class="step">
+          <strong>1.</strong> ไปที่ <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent2)">console.firebase.google.com</a><br>
+          สร้าง Project ใหม่ (ตั้งชื่อว่า "onepiece-shop" หรืออะไรก็ได้)
+        </div>
+        <div class="step">
+          <strong>2.</strong> ใน Project → <code>Build</code> → <code>Realtime Database</code> → <code>Create database</code><br>
+          เลือก <code>Start in test mode</code> → <code>Enable</code>
+        </div>
+        <div class="step">
+          <strong>3.</strong> ไปที่ <code>Project Settings</code> (ไอคอนฟัน ⚙️) → <code>General</code><br>
+          เลื่อนลงมาที่ "Your apps" → กด <code>&lt;/&gt;</code> (Web) → ลงทะเบียน app<br>
+          คัดลอก <code>firebaseConfig</code> ทั้งหมด แล้วใส่ด้านล่าง
+        </div>
+
+        <div class="field" style="margin-top:14px">
+          <label>วาง firebaseConfig (JSON) ที่นี่</label>
+          <textarea class="config-input" id="cfg-input" rows="7" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-app.firebaseapp.com",
+  "databaseURL": "https://your-app-default-rtdb.firebaseio.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123:web:abc"
+}'></textarea>
+        </div>
+
+        <button class="save-config-btn" onclick="saveAndInit()">🚀 เชื่อมต่อ Firebase</button>
+        <button class="skip-btn" onclick="useDemoMode()">ทดลองใช้แบบ demo (ไม่ซิงค์)</button>
+      </div>
+    </div>
+  `;
+}
+
+window.saveAndInit = function() {
+  const raw = document.getElementById('cfg-input').value.trim();
+  try {
+    const cfg = JSON.parse(raw);
+    if(!cfg.apiKey || !cfg.databaseURL) throw new Error('missing fields');
+    saveConfig(cfg);
+    renderApp();
+    initFirebase(cfg);
+  } catch(e) {
+    showToast('❌ JSON ไม่ถูกต้อง ลองคัดลอกใหม่', 'error');
+  }
+};
+
+window.useDemoMode = function() {
+  ids = [
+    {id:'op1',account:'910398425@whomail.asia',pw:'eznaicxr9',os:'Android',gem:8400,price:350,note:'',sold:false,soldAt:null},
+    {id:'op2',account:'793800353@mailserver.tw',pw:'szhrdmcj9',os:'Android',gem:8400,price:350,note:'',sold:false,soldAt:null},
+    {id:'op3',account:'007329000@samson.it.kr',pw:'fd3pmei9',os:'iOS',gem:8400,price:320,note:'ลิ้ม yamato',sold:false,soldAt:null},
+  ];
+  renderApp();
+  setTimeout(() => setSyncStatus('err', 'demo mode'), 300);
+  setTimeout(() => { renderStats(); renderFilters(); renderList(); }, 300);
+};
+
+// ---- BOOT ----
+const cfg = getConfig();
+if(cfg) {
+  renderApp();
+  initFirebase(cfg);
+} else {
+  showSetup();
+}
+</script>
+</body>
+</html>
