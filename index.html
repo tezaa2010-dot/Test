@@ -135,7 +135,7 @@ body {
 .gem { font-size: 12px; color: var(--muted); }
 .gem span { color: var(--accent2); font-weight: 500; }
 
-.id-actions { display: flex; align-items: center; gap: 8px; }
+.id-actions { display: flex; align-items: center; gap: 6px; }
 .sell-btn {
   padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500;
   cursor: pointer; border: 1px solid var(--accent); background: transparent;
@@ -145,6 +145,41 @@ body {
 .sell-btn:hover { background: var(--accent); color: #fff; }
 .sell-btn:disabled { opacity: .3; cursor: not-allowed; border-color: var(--border); color: var(--muted); }
 .sold-tag { font-size: 11px; color: var(--muted); }
+.copy-btn {
+  padding: 6px 10px; border-radius: 7px; font-size: 12px;
+  cursor: pointer; border: 1px solid var(--border2); background: transparent;
+  color: var(--muted); font-family: 'Sarabun', sans-serif; white-space: nowrap;
+  transition: all .15s;
+}
+.copy-btn:hover { border-color: var(--green); color: var(--green); }
+.copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.tab-toggle { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; width: fit-content; }
+.tab-toggle button {
+  padding: 7px 16px; border: none; background: transparent;
+  color: var(--muted); font-family: 'Sarabun', sans-serif; font-size: 13px; cursor: pointer;
+  transition: all .15s;
+}
+.tab-toggle button.on { background: var(--accent); color: #fff; }
+.bulk-area {
+  width: 100%; min-height: 120px; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  outline: none; resize: vertical; transition: border-color .15s; line-height: 1.7;
+}
+.bulk-area:focus { border-color: var(--accent); }
+.parse-preview {
+  margin-top: 10px; background: var(--surface2); border-radius: 8px;
+  border: 1px solid var(--border2); overflow: hidden;
+}
+.parse-row {
+  display: grid; grid-template-columns: 1fr 1fr auto;
+  padding: 7px 12px; font-size: 12px; font-family: 'IBM Plex Mono', monospace;
+  border-bottom: 1px solid var(--border); align-items: center; gap: 8px;
+}
+.parse-row:last-child { border-bottom: none; }
+.parse-row .acc { color: var(--text); }
+.parse-row .pw { color: var(--muted); }
+.parse-count { font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
 
 /* Empty */
 .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
@@ -418,6 +453,7 @@ function renderList() {
         </div>
       </div>
       <div class="id-actions">
+        ${!x.sold ? `<button class="copy-btn" onclick="copyID('${x.id}',this)" title="ก็อป id+pass">📋</button>` : ''}
         ${x.sold
           ? `<span class="sold-tag badge badge-sold">ขายแล้ว</span>`
           : `<button class="sell-btn" onclick="confirmSell('${x.id}')">ขายแล้ว</button>`
@@ -432,21 +468,108 @@ function renderAdd() {
   if(!el) return;
   el.innerHTML = `
     <div class="form-card">
-      <div class="form-title">➕ เพิ่มไอดีใหม่</div>
-      <div class="form-grid full"><div class="field"><label>ไอดี / อีเมล</label><input id="f-id" type="text" placeholder="910398425@whomail.asia"></div></div>
-      <div class="form-grid full"><div class="field"><label>รหัสผ่าน</label><input id="f-pw" type="text" placeholder="รหัสผ่าน"></div></div>
-      <div class="form-grid">
-        <div class="field"><label>ระบบ</label><select id="f-os"><option>Android</option><option>iOS</option></select></div>
-        <div class="field"><label>จำนวนเพชร</label><input id="f-gem" type="number" placeholder="8400"></div>
+      <div class="form-title">➕ เพิ่มไอดี</div>
+      <div class="tab-toggle">
+        <button class="on" id="tog-single" onclick="toggleAddMode('single')">เพิ่มทีละอัน</button>
+        <button id="tog-bulk" onclick="toggleAddMode('bulk')">วางจากเกาหลี 🇰🇷</button>
       </div>
-      <div class="form-grid">
-        <div class="field"><label>ราคาขาย (บาท)</label><input id="f-price" type="number" placeholder="350"></div>
-        <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="f-note" type="text" placeholder="ลิ้ม yamato"></div>
+
+      <div id="add-single">
+        <div class="form-grid full"><div class="field"><label>ไอดี / อีเมล</label><input id="f-id" type="text" placeholder="910398425@whomail.asia"></div></div>
+        <div class="form-grid full"><div class="field"><label>รหัสผ่าน</label><input id="f-pw" type="text" placeholder="รหัสผ่าน"></div></div>
+        <div class="form-grid">
+          <div class="field"><label>ระบบ</label><select id="f-os"><option>Android</option><option>iOS</option></select></div>
+          <div class="field"><label>จำนวนเพชร</label><input id="f-gem" type="number" placeholder="8400"></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>ราคาขาย (บาท)</label><input id="f-price" type="number" placeholder="350"></div>
+          <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="f-note" type="text" placeholder="ลิ้ม yamato"></div>
+        </div>
+        <button class="submit-btn" id="add-btn" onclick="addID()">💾 บันทึกไอดี</button>
       </div>
-      <button class="submit-btn" id="add-btn" onclick="addID()">💾 บันทึกไอดี</button>
+
+      <div id="add-bulk" style="display:none">
+        <div class="field" style="margin-bottom:10px">
+          <label>วางข้อความจากเกาหลีมาเลย (รองรับหลายบรรทัด)</label>
+          <textarea class="bulk-area" id="bulk-text" placeholder="아이디 967538874@whomail.biz 비번 yixhzdk39 17:58&#10;아이디 827738491@samson.it.kr 비번 zhcen3xw9 17:58&#10;..." oninput="parseBulk()"></textarea>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>ระบบ</label><select id="bulk-os"><option>Android</option><option>iOS</option></select></div>
+          <div class="field"><label>จำนวนเพชร</label><input id="bulk-gem" type="number" placeholder="8400"></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>ราคาขาย (บาท)</label><input id="bulk-price" type="number" placeholder="350"></div>
+          <div class="field"><label>หมายเหตุ (ถ้ามี)</label><input id="bulk-note" type="text" placeholder=""></div>
+        </div>
+        <div id="bulk-preview"></div>
+        <button class="submit-btn" id="bulk-btn" onclick="addBulk()" style="margin-top:12px">💾 บันทึกทั้งหมด</button>
+      </div>
     </div>
   `;
 }
+
+window.toggleAddMode = function(mode) {
+  document.getElementById('add-single').style.display = mode==='single'?'block':'none';
+  document.getElementById('add-bulk').style.display = mode==='bulk'?'block':'none';
+  document.getElementById('tog-single').className = mode==='single'?'on':'';
+  document.getElementById('tog-bulk').className = mode==='bulk'?'on':'';
+};
+
+function parseKoreanText(text) {
+  const results = [];
+  // Match 아이디 <account> 비번 <password> — ignore timestamps and other Korean
+  const regex = /아이디\s+(\S+@\S+)\s+비번\s+(\S+)/g;
+  let m;
+  while((m = regex.exec(text)) !== null) {
+    results.push({ account: m[1], pw: m[2] });
+  }
+  return results;
+}
+
+window.parseBulk = function() {
+  const text = document.getElementById('bulk-text').value;
+  const parsed = parseKoreanText(text);
+  const el = document.getElementById('bulk-preview');
+  if(!parsed.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="parse-count">พบ <strong style="color:var(--green)">${parsed.length}</strong> ไอดี</div>
+    <div class="parse-preview">
+      ${parsed.map(x => `
+        <div class="parse-row">
+          <span class="acc">${x.account}</span>
+          <span class="pw">${x.pw}</span>
+          <span style="color:var(--green);font-size:11px">✓</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+};
+
+window.addBulk = async function() {
+  const text = document.getElementById('bulk-text').value;
+  const parsed = parseKoreanText(text);
+  if(!parsed.length) { showToast('❌ ไม่พบไอดีในข้อความ', 'error'); return; }
+  if(!db) { showToast('❌ ยังไม่ได้เชื่อมต่อ Firebase', 'error'); return; }
+
+  const os = document.getElementById('bulk-os').value;
+  const gem = parseInt(document.getElementById('bulk-gem').value) || 0;
+  const price = parseInt(document.getElementById('bulk-price').value) || 0;
+  const note = document.getElementById('bulk-note').value.trim();
+
+  const btn = document.getElementById('bulk-btn');
+  btn.disabled = true; btn.textContent = `กำลังบันทึก ${parsed.length} ไอดี...`;
+
+  for(const item of parsed) {
+    const id = 'op' + Date.now() + Math.random().toString(36).slice(2,6);
+    await set(ref(db, 'ids/' + id), { id, account: item.account, pw: item.pw, os, gem, price, note, sold: false, soldAt: null });
+  }
+
+  showToast(`✅ เพิ่ม ${parsed.length} ไอดีแล้ว!`, 'success');
+  btn.disabled = false; btn.textContent = '💾 บันทึกทั้งหมด';
+  document.getElementById('bulk-text').value = '';
+  document.getElementById('bulk-preview').innerHTML = '';
+  switchTab('stock');
+};
 
 function renderHistory() {
   const el = document.getElementById('tab-history');
@@ -493,6 +616,17 @@ function initFirebase(config) {
     if(currentTab === 'history') renderHistory();
   });
 }
+
+window.copyID = function(idVal, btn) {
+  const item = ids.find(x => x.id === idVal);
+  if(!item) return;
+  const text = `ID: ${item.account}\nPass: ${item.pw}`;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 1500);
+  });
+};
 
 window.confirmSell = function(idVal) {
   const item = ids.find(x => x.id === idVal);
