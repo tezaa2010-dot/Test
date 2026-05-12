@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ร้านไอดี One Piece</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f7ff;
+  --white: #ffffff;
+  --border: #e5e8f0;
+  --border2: #cdd1e0;
+  --text: #111827;
+  --text2: #374151;
+  --muted: #9ca3af;
+  --accent: #6366f1;
+  --accent-h: #4f46e5;
+  --accent-light: #eef2ff;
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --blue: #2563eb;
+  --blue-bg: #dbeafe;
+  --amber: #d97706;
+  --amber-bg: #fef3c7;
+  --red: #dc2626;
+  --red-bg: #fee2e2;
+  --purple: #7c3aed;
+  --purple-bg: #ede9fe;
+  --gray: #6b7280;
+  --gray-bg: #f3f4f6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow: 0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* HEADER */
+.hdr{
+  background:var(--white);border-bottom:1px solid var(--border);
+  padding:0 24px;height:58px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:50;
+  box-shadow:var(--shadow-sm);
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:34px;height:34px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;box-shadow:0 2px 8px rgba(99,102,241,.35);
+}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.sync-pill{
+  display:flex;align-items:center;gap:6px;padding:5px 12px;
+  border-radius:20px;border:1px solid var(--border);background:var(--bg);
+  font-size:11px;color:var(--muted);font-weight:500;
+}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.sdot.err{background:var(--red);animation:none}
+.sdot.loading{background:var(--amber)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* NAV */
+.nav{
+  background:var(--white);border-bottom:1px solid var(--border);
+  display:flex;gap:0;padding:0 20px;overflow-x:auto;
+}
+.nav-btn{
+  padding:14px 18px;border:none;background:transparent;
+  color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;
+  font-weight:500;cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;transition:all .15s;
+}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* MAIN */
+.main{padding:20px;max-width:780px;margin:0 auto;width:100%}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px}
+.stat{
+  background:var(--white);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm);
+}
+.stat .lbl{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.stat .val{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.val-green{color:var(--green)}
+.val-blue{color:var(--blue)}
+.val-amber{color:var(--amber)}
+.val-gray{color:var(--gray)}
+.val-purple{color:var(--purple)}
+
+/* SEARCH + FILTER */
+.search-bar{
+  background:var(--white);border:1px solid var(--border);border-radius:10px;
+  padding:0 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px;
+  box-shadow:var(--shadow-sm); transition:border-color .15s;
+}
+.search-bar:focus-within{border-color:var(--accent)}
+.search-icon{color:var(--muted);font-size:15px;flex-shrink:0}
+.search-input{
+  flex:1;border:none;outline:none;font-family:'Inter',sans-serif;
+  font-size:13px;color:var(--text);background:transparent;padding:11px 0;
+}
+.search-input::placeholder{color:var(--muted)}
+
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{
+  padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);background:var(--white);color:var(--gray);
+  transition:all .15s;white-space:nowrap;font-family:'Inter',sans-serif;
+}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.on-green{background:var(--green-bg);border-color:#86efac;color:var(--green)}
+.chip.on-blue{background:var(--blue-bg);border-color:#93c5fd;color:var(--blue)}
+.chip.on-amber{background:var(--amber-bg);border-color:#fcd34d;color:var(--amber)}
+.chip.on-red{background:var(--red-bg);border-color:#fca5a5;color:var(--red)}
+.chip.on-purple{background:var(--purple-bg);border-color:#c4b5fd;color:var(--purple)}
+
+/* GROUP */
+.group{margin-bottom:20px}
+.group-header{
+  display:flex;align-items:center;gap:10px;margin:20px 0 10px;padding:0 2px;
+}
+.group-label{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:-.1px}
+.group-gem-icon{font-size:16px}
+.group-count{
+  font-size:12px;font-weight:600;background:var(--accent-light);color:var(--accent);
+  padding:3px 10px;border-radius:20px;
+}
+.group-line{flex:1;height:1px;background:var(--border)}
+
+
+/* INLINE NOTE EDIT */
+.note-row{margin-top:6px;display:flex;align-items:center;gap:6px}
+.note-input{
+  flex:1;font-family:'Inter',sans-serif;font-size:12px;color:var(--text2);
+  background:transparent;border:none;border-bottom:1px dashed var(--border2);
+  outline:none;padding:2px 4px;transition:all .15s;min-width:0;
+}
+.note-input:focus{border-bottom-color:var(--accent);background:rgba(99,102,241,.04)}
+.note-input::placeholder{color:var(--muted)}
+.note-save-btn{
+  font-size:11px;padding:2px 8px;border-radius:5px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);cursor:pointer;font-family:'Inter',sans-serif;
+  font-weight:500;transition:all .15s;white-space:nowrap;display:none;
+}
+.note-save-btn.show{display:inline-block}
+.note-save-btn:hover{background:var(--accent);color:#fff}
+/* ID CARD */
+.id-list{display:flex;flex-direction:column;gap:6px}
+.id-card{
+  background:var(--white);border:1px solid var(--border);border-radius:12px;
+  padding:13px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:var(--shadow-sm);transition:all .15s;
+}
+.id-card:hover{border-color:var(--border2);box-shadow:var(--shadow)}
+.id-card.status-keep{background:#fffbf0;border-color:#f5d97a;border-left:4px solid var(--amber)}
+.id-card.status-web{background:#f0f7ff;border-color:#bdd7f5;border-left:4px solid var(--blue)}
+.id-card.status-sell{background:#f0fbf7;border-color:#a8e6d4;border-left:4px solid var(--green)}
+.id-card.status-sold{background:#f8f8fb;border-color:var(--border);border-left:4px solid var(--muted);opacity:.5}
+.id-info{flex:1;min-width:0}
+.id-account{
+  font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;
+  color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.id-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.id-pw{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.id-note{font-size:11px;color:var(--amber);font-weight:500}
+.gem{font-size:12px;color:var(--gray);font-weight:500}
+
+/* BADGES */
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;letter-spacing:.2px}
+.b-android{background:var(--green-bg);color:var(--green)}
+.b-ios{background:var(--blue-bg);color:var(--blue)}
+.b-sold{background:var(--gray-bg);color:var(--gray)}
+.b-keep{background:var(--amber-bg);color:var(--amber)}
+.b-web{background:var(--blue-bg);color:var(--blue)}
+.b-sell{background:var(--green-bg);color:var(--green)}
+
+/* STATUS DROPDOWN */
+.status-select{
+  padding:4px 8px;border-radius:7px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
+  font-size:11px;font-weight:500;cursor:pointer;outline:none;
+  transition:border-color .15s;
+}
+.status-select:focus{border-color:var(--accent)}
+
+/* ACTION BTNS */
+.id-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.copy-btn{
+  padding:6px 10px;border-radius:7px;font-size:12px;cursor:pointer;
+  border:1px solid var(--border);background:var(--white);color:var(--muted);
+  transition:all .15s;font-family:'Inter',sans-serif;
+}
+.copy-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.copy-btn.copied{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.sell-btn{
+  padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);
+  transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap;
+}
+.sell-btn:hover{background:var(--accent);color:#fff}
+.sold-badge{
+  font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;
+  background:var(--gray-bg);color:var(--gray);
+}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty p{font-size:14px;font-weight:500}
+.empty small{font-size:12px;margin-top:4px;display:block}
+
+/* FORM */
+.form-card{
+  background:var(--white);border:1px solid var(--border);border-radius:14px;
+  padding:24px;box-shadow:var(--shadow-sm);
+}
+.form-title{font-size:16px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
+.tab-toggle{
+  display:flex;background:var(--bg);border-radius:9px;padding:3px;
+  margin-bottom:20px;width:fit-content;
+}
+.ttbtn{
+  padding:6px 18px;border-radius:7px;border:none;background:transparent;
+  color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;
+  font-weight:500;cursor:pointer;transition:all .15s;
+}
+.ttbtn.on{background:var(--white);color:var(--text);box-shadow:var(--shadow-sm);}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fgrid.full{grid-template-columns:1fr}
+.field label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select,.field textarea{
+  width:100%;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg);
+  color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+  outline:none;transition:border-color .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:var(--white)}
+.bulk-area{
+  width:100%;min-height:110px;padding:10px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg);
+  color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;
+  outline:none;resize:vertical;line-height:1.7;transition:border-color .15s;
+}
+.bulk-area:focus{border-color:var(--accent);background:var(--white)}
+.parse-preview{
+  margin-top:10px;background:var(--bg);border-radius:8px;
+  border:1px solid var(--border);overflow:hidden;
+}
+.parse-row{
+  display:grid;grid-template-columns:1fr 1fr auto;
+  padding:7px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;
+  border-bottom:1px solid var(--border);align-items:center;gap:8px;
+}
+.parse-row:last-child{border-bottom:none}
+.parse-count{font-size:12px;color:var(--muted);font-weight:500;margin:8px 0 4px}
+.submit-btn{
+  margin-top:16px;padding:10px 24px;border-radius:9px;
+  background:var(--accent);border:none;color:#fff;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(99,102,241,.3);
+}
+.submit-btn:hover{background:var(--accent-h)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* HISTORY */
+.hist-card{
+  background:var(--white);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;margin-bottom:6px;display:flex;align-items:center;
+  gap:12px;box-shadow:var(--shadow-sm);
+}
+.hist-acc{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;margin-bottom:3px}
+.hist-time{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;margin-left:auto}
+
+/* MODAL */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);
+  backdrop-filter:blur(6px);align-items:center;justify-content:center;
+  z-index:200;padding:20px;
+}
+.modal-bg.show{display:flex}
+.modal{
+  background:var(--white);border-radius:16px;padding:28px;
+  max-width:360px;width:100%;box-shadow:var(--shadow-lg);
+}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:8px;letter-spacing:-.3px}
+.modal p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{
+  padding:8px 18px;border-radius:9px;border:1px solid var(--border);
+  background:var(--bg);color:var(--gray);font-family:'Inter',sans-serif;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;
+}
+.btn-cancel:hover{background:var(--border)}
+.btn-confirm{
+  padding:8px 20px;border-radius:9px;border:none;
+  background:var(--accent);color:#fff;font-family:'Inter',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.btn-confirm:hover{background:var(--accent-h)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--text);color:#fff;border-radius:10px;padding:10px 18px;
+  font-size:13px;font-weight:500;opacity:0;transition:all .25s;z-index:300;
+  white-space:nowrap;box-shadow:var(--shadow-lg);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:#15803d}
+.toast.error{background:var(--red)}
+
+/* SECTION DIVIDER */
+.section-sep{
+  display:flex;align-items:center;gap:10px;margin:6px 0 14px;
+}
+.section-sep .line{flex:1;height:1px;background:var(--border)}
+.section-sep .label{
+  font-size:11px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:var(--muted);font-size:14px">กำลังโหลด...</div>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3>⚠️ ยืนยันการขาย</h3>
+    <p id="modal-text"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-confirm" onclick="doSell()">ยืนยัน — ล็อกทันที</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, get, update } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── STATE ──
+let db = null, ids = [], history = [];
+let filterOs = 'all', filterStatus = 'all', searchQ = '';
+let groupBy = 'gem'; // 'gem' | 'os' | 'none'
+let currentTab = 'stock', pendingId = null;
+
+// ── FIREBASE CONFIG (ฝังไว้เลย) ──
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBqkYMmhJcBkAp-wsAjCB16g2kkrGBpCAk",
+  authDomain: "optc-stock.firebaseapp.com",
+  databaseURL: "https://optc-stock-default-rtdb.firebaseio.com",
+  projectId: "optc-stock",
+  storageBucket: "optc-stock.firebasestorage.app",
+  messagingSenderId: "387263850616",
+  appId: "1:387263850616:web:f14c66f19f2b5bcef7a58d",
+  measurementId: "G-HFX8VRMSZ8"
+};
+
+// ── UTILS ──
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2600);
+}
+function setSyncStatus(state, msg) {
+  const d = document.getElementById('sdot'), l = document.getElementById('slbl');
+  if(d) { d.className = 'sdot ' + state; l.textContent = msg; }
+}
+
+// ── STATUS helpers ──
+const STATUS_LABEL = { sell: 'Sell', keep: 'Keep', web: 'Web', sold: 'Sold' };
+const STATUS_BADGE = { sell: 'b-sell', keep: 'b-keep', web: 'b-web', sold: 'b-sold' };
+const STATUS_CARD  = { sell: 'status-sell', keep: 'status-keep', web: 'status-web', sold: 'status-sold' };
+
+// ── RENDER APP SHELL ──
+function renderApp() {
+  document.getElementById('app').innerHTML = `
+    <div class="hdr">
+      <div class="logo">
+        <div class="logo-icon">⚔️</div>
+        <div>
+          <div class="logo-text">One Piece ID Shop</div>
+          <div class="logo-sub">ระบบจัดการสต็อก</div>
+        </div>
+      </div>
+      <div class="sync-pill">
+        <div class="sdot loading" id="sdot"></div>
+        <span id="slbl">กำลังเชื่อมต่อ...</span>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" id="nav-stock" onclick="switchTab('stock')">📦 สต็อก</button>
+      <button class="nav-btn" id="nav-add"   onclick="switchTab('add')">＋ เพิ่มไอดี</button>
+      <button class="nav-btn" id="nav-history" onclick="switchTab('history')">📋 ประวัติ</button>
+    </div>
+    <div class="main">
+      <div id="stats-area"></div>
+      <div id="tab-stock">
+        <div id="search-area"></div>
+        <div id="filter-area"></div>
+        <div id="id-list-area"><div class="empty"><div class="empty-icon">⏳</div><p>กำลังโหลด...</p></div></div>
+      </div>
+      <div id="tab-add"     style="display:none"></div>
+      <div id="tab-history" style="display:none"></div>
+    </div>
+  `;
+  renderSearch();
+  renderAdd();
+}
+window.switchTab = function(t) {
+  currentTab = t;
+  ['stock','add','history'].forEach(x => {
+    document.getElementById('tab-'+x).style.display = x===t ? 'block' : 'none';
+    const b = document.getElementById('nav-'+x);
+    if(b) b.className = 'nav-btn' + (x===t?' active':'');
+  });
+  if(t==='history') renderHistory();
+  if(t==='stock') { renderStats(); renderFilters(); renderList(); }
+};
+
+// ── STATS ──
+function renderStats() {
+  const avail = ids.filter(x=>x.status!=='sold').length;
+  const sold  = ids.filter(x=>x.status==='sold').length;
+  const sell  = ids.filter(x=>x.status==='sell').length;
+  const keep  = ids.filter(x=>x.status==='keep').length;
+  const web   = ids.filter(x=>x.status==='web').length;
+  const el = document.getElementById('stats-area');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="lbl">พร้อมขาย</div><div class="val val-green">${avail}</div></div>
+      <div class="stat"><div class="lbl">Sell</div><div class="val val-blue">${sell}</div></div>
+      <div class="stat"><div class="lbl">Keep</div><div class="val val-amber">${keep}</div></div>
+      <div class="stat"><div class="lbl">Web</div><div class="val val-purple">${web}</div></div>
+      <div class="stat"><div class="lbl">ขายแล้ว</div><div class="val val-gray">${sold}</div></div>
+    </div>`;
+}
+
+// ── SEARCH ──
+function renderSearch() {
+  const el = document.getElementById('search-area');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" placeholder="ค้นหา ไอดี, รหัสผ่าน, หมายเหตุ..." oninput="onSearch(this.value)">
+    </div>`;
+}
+window.onSearch = function(v) { searchQ = v.toLowerCase(); renderFilters(); renderList(); };
+
+// ── FILTERS ──
+function renderFilters() {
+  const el = document.getElementById('filter-area');
+  if(!el) return;
+
+  // group-by selector
+  const gbOptions = [
+    {val:'gem', label:'แยกตามเพชร'},
+    {val:'os',  label:'แยกตาม OS'},
+    {val:'none',label:'ไม่แยกหมวด'},
+  ];
+
+  el.innerHTML = `
+    <div class="filter-row" style="margin-bottom:8px">
+      <span style="font-size:11px;font-weight:600;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.4px">OS:</span>
+      ${['all','Android','iOS'].map(v=>`
+        <button class="chip ${filterOs===v?'on':''}" onclick="setF('os','${v}')">${v==='all'?'ทั้งหมด':v}</button>
+      `).join('')}
+      <span style="font-size:11px;font-weight:600;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.4px;margin-left:6px">สถานะ:</span>
+      ${[
+        {v:'all',  l:'ทั้งหมด',  cls:''},
+        {v:'sell', l:'Sell',   cls:'on-green'},
+        {v:'keep', l:'Keep',   cls:'on-amber'},
+        {v:'web',  l:'Web',    cls:'on-blue'},
+        {v:'sold', l:'ขายแล้ว',cls:'on-gray'},
+      ].map(({v,l,cls})=>`
+        <button class="chip ${filterStatus===v?('sell'===v?'on-green':'keep'===v?'on-amber':'web'===v?'on-blue':'sold'===v?'on':'on'):''}" 
+          style="${filterStatus===v&&v!=='all'?'':''}${filterStatus===v&&v==='all'?'background:var(--accent);border-color:var(--accent);color:#fff':''}"
+          onclick="setF('status','${v}')">${l}</button>
+      `).join('')}
+    </div>
+    <div class="filter-row">
+      <span style="font-size:11px;font-weight:600;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.4px">จัดกลุ่ม:</span>
+      ${gbOptions.map(o=>`
+        <button class="chip ${groupBy===o.val?'on':''}" onclick="setGroup('${o.val}')">${o.label}</button>
+      `).join('')}
+    </div>`;
+}
+window.setF = function(type, val) {
+  if(type==='os') filterOs=val; else filterStatus=val;
+  renderFilters(); renderList();
+};
+window.setGroup = function(val) { groupBy=val; renderFilters(); renderList(); };
+
+// ── LIST + GROUPING ──
+function getFiltered() {
+  return ids.filter(x => {
+    if(filterOs !== 'all' && x.os !== filterOs) return false;
+    if(filterStatus !== 'all' && (x.status||'sell') !== filterStatus) return false;
+    if(searchQ) {
+      const hay = `${x.account} ${x.pw} ${x.note||''} ${x.gem}`.toLowerCase();
+      if(!hay.includes(searchQ)) return false;
+    }
+    return true;
+  });
+}
+
+function renderList() {
+  const el = document.getElementById('id-list-area');
+  if(!el) return;
+  const list = getFiltered();
+  if(!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>ไม่พบไอดีที่ตรงกัน</p><small>ลองเปลี่ยนตัวกรองหรือคำค้นหา</small></div>`;
+    return;
+  }
+
+  if(groupBy === 'none') {
+    el.innerHTML = `<div class="id-list">${list.map(cardHTML).join('')}</div>`;
+    return;
+  }
+
+  // group
+  const groups = {};
+  list.forEach(x => {
+    const key = groupBy === 'gem'
+      ? `💎 ${(x.gem||0).toLocaleString()} เพชร`
+      : x.os || 'Unknown';
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(x);
+  });
+
+  // sort group keys
+  const sortedKeys = Object.keys(groups).sort((a,b) => {
+    if(groupBy==='gem') {
+      const na = parseInt(a.replace(/\D/g,'')) || 0;
+      const nb = parseInt(b.replace(/\D/g,'')) || 0;
+      return nb - na; // high gem first
+    }
+    return a.localeCompare(b);
+  });
+
+  el.innerHTML = sortedKeys.map(key => `
+    <div class="group">
+      <div class="group-header">
+        <span class="group-gem-icon">💎</span>
+        <span class="group-label">${key}</span>
+        <span class="group-count">${groups[key].length} ไอดี</span>
+        <div class="group-line"></div>
+      </div>
+      <div class="id-list">${groups[key].map(cardHTML).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function cardHTML(x) {
+  const status = x.status || 'sell';
+  const isSold = status === 'sold';
+  const noteVal = (x.note||'').replace(/"/g,'&quot;');
+  return `
+    <div class="id-card ${STATUS_CARD[status]||''}">
+      <div class="id-info" style="flex:1;min-width:0">
+        <div class="id-account">${x.account}</div>
+        <div class="id-meta">
+          <span class="id-pw">${x.pw}</span>
+          <span class="badge ${x.os==='Android'?'b-android':'b-ios'}">${x.os||''}</span>
+          <span class="gem">💎 ${(x.gem||0).toLocaleString()}</span>
+        </div>
+        ${!isSold ? `
+        <div class="note-row">
+          <input
+            class="note-input"
+            id="note-${x.id}"
+            value="${noteVal}"
+            placeholder="เพิ่มหมายเหตุ..."
+            oninput="onNoteInput('${x.id}')"
+            onkeydown="if(event.key==='Enter') saveNote('${x.id}')"
+          >
+          <button class="note-save-btn" id="note-btn-${x.id}" onclick="saveNote('${x.id}')">บันทึก</button>
+        </div>` : `
+        ${x.note ? `<div style="margin-top:5px;font-size:11px;color:var(--gray)">📝 ${x.note}</div>` : ''}
+        `}
+      </div>
+      <div class="id-actions">
+        ${!isSold ? `
+          <select class="status-select" onchange="changeStatus('${x.id}',this.value)">
+            <option value="sell"  ${status==='sell' ?'selected':''}>Sell</option>
+            <option value="keep"  ${status==='keep' ?'selected':''}>Keep</option>
+            <option value="web"   ${status==='web'  ?'selected':''}>Web</option>
+          </select>
+          <button class="copy-btn" onclick="copyID('${x.id}',this)" title="ก็อป id+pass">📋</button>
+          <button class="sell-btn" onclick="confirmSell('${x.id}')">ขายแล้ว</button>
+        ` : `
+          <span class="sold-badge">✓ ขายแล้ว</span>
+        `}
+      </div>
+    </div>`;
+}
+
+// ── CHANGE STATUS ──
+window.changeStatus = async function(idVal, newStatus) {
+  if(!db) return;
+  await update(ref(db, 'ids/' + idVal), { status: newStatus });
+};
+
+// ── NOTE EDIT ──
+window.onNoteInput = function(idVal) {
+  const btn = document.getElementById('note-btn-' + idVal);
+  if(btn) btn.classList.add('show');
+};
+window.saveNote = async function(idVal) {
+  if(!db) return;
+  const input = document.getElementById('note-' + idVal);
+  const btn = document.getElementById('note-btn-' + idVal);
+  if(!input) return;
+  const note = input.value.trim();
+  await update(ref(db, 'ids/' + idVal), { note });
+  if(btn){ btn.classList.remove('show'); btn.textContent='✓'; setTimeout(()=>btn.textContent='บันทึก',1200); }
+};
+
+// ── COPY ──
+window.copyID = function(idVal, btn) {
+  const item = ids.find(x => x.id === idVal);
+  if(!item) return;
+  navigator.clipboard.writeText(`ID: ${item.account}\nPass: ${item.pw}`).then(() => {
+    btn.textContent = '✅'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 1500);
+  });
+};
+
+// ── SELL CONFIRM ──
+window.confirmSell = function(idVal) {
+  const item = ids.find(x => x.id === idVal);
+  if(!item || item.status === 'sold') return;
+  pendingId = idVal;
+  document.getElementById('modal-text').innerHTML =
+    `<strong>${item.account}</strong><br>รหัส: ${item.pw}<br>💎 ${(item.gem||0).toLocaleString()} · ${item.os}<br><br>ไอดีนี้จะถูก <strong>ล็อกทันที</strong> และซิงค์ทุกเครื่อง`;
+  document.getElementById('modal').classList.add('show');
+};
+window.closeModal = function() {
+  document.getElementById('modal').classList.remove('show'); pendingId = null;
+};
+window.doSell = async function() {
+  if(!pendingId || !db) return;
+  const item = ids.find(x => x.id === pendingId);
+  if(!item) return;
+  const snap = await get(ref(db, 'ids/' + pendingId));
+  const live = snap.val();
+  if(live && live.status === 'sold') {
+    toast('❌ ไอดีนี้ถูกขายไปแล้ว!', 'error');
+    closeModal(); return;
+  }
+  const now = new Date().toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+  const ts = Date.now();
+  await update(ref(db, 'ids/' + pendingId), { status: 'sold', sold: true, soldAt: now });
+  await set(ref(db, 'history/' + ts), {
+    account: item.account, os: item.os, gem: item.gem,
+    price: item.price||0, note: item.note||'', soldAt: now, ts
+  });
+  toast('✅ ล็อกไอดีแล้ว!', 'success');
+  closeModal();
+};
+
+// ── ADD FORM ──
+function renderAdd() {
+  const el = document.getElementById('tab-add');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="form-card">
+      <div class="form-title">เพิ่มไอดีใหม่</div>
+      <div class="tab-toggle">
+        <button class="ttbtn on" id="tog-single" onclick="toggleMode('single')">เพิ่มทีละอัน</button>
+        <button class="ttbtn"   id="tog-bulk"   onclick="toggleMode('bulk')">วางจากเกาหลี 🇰🇷</button>
+      </div>
+      <div id="add-single">
+        <div class="fgrid full"><div class="field"><label>ไอดี / อีเมล</label><input id="f-id"    type="text"   placeholder="910398425@whomail.asia"></div></div>
+        <div class="fgrid full"><div class="field"><label>รหัสผ่าน</label>    <input id="f-pw"    type="text"   placeholder="รหัสผ่าน"></div></div>
+        <div class="fgrid">
+          <div class="field"><label>ระบบ</label>        <select id="f-os"><option>Android</option><option>iOS</option></select></div>
+          <div class="field"><label>จำนวนเพชร</label>   <input id="f-gem"   type="number" placeholder="8400"></div>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>ราคาขาย (฿)</label> <input id="f-price" type="number" placeholder="350"></div>
+          <div class="field"><label>หมายเหตุ</label>     <input id="f-note"  type="text"   placeholder="ลิ้ม yamato"></div>
+        </div>
+        <div class="fgrid" style="margin-bottom:0">
+          <div class="field"><label>สถานะเริ่มต้น</label>
+            <select id="f-status"><option value="sell">Sell</option><option value="keep">Keep</option><option value="web">Web</option></select>
+          </div>
+        </div>
+        <button class="submit-btn" id="add-btn" onclick="addSingle()">💾 บันทึก</button>
+      </div>
+      <div id="add-bulk" style="display:none">
+        <div class="field" style="margin-bottom:12px">
+          <label>วางข้อความเกาหลี (รองรับหลายบรรทัด)</label>
+          <textarea class="bulk-area" id="bulk-text" placeholder="아이디 967538874@whomail.biz 비번 yixhzdk39 17:58&#10;아이디 827738491@samson.it.kr 비번 zhcen3xw9 17:58" oninput="parseBulk()"></textarea>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>ระบบ</label>        <select id="bulk-os"><option>Android</option><option>iOS</option></select></div>
+          <div class="field"><label>จำนวนเพชร</label>   <input id="bulk-gem"   type="number" placeholder="8400"></div>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>ราคาขาย (฿)</label> <input id="bulk-price" type="number" placeholder="350"></div>
+          <div class="field"><label>สถานะ</label>
+            <select id="bulk-status"><option value="sell">Sell</option><option value="keep">Keep</option><option value="web">Web</option></select>
+          </div>
+        </div>
+        <div id="bulk-preview"></div>
+        <button class="submit-btn" id="bulk-btn" onclick="addBulk()" style="margin-top:12px">💾 บันทึกทั้งหมด</button>
+      </div>
+    </div>`;
+}
+
+window.toggleMode = function(m) {
+  document.getElementById('add-single').style.display = m==='single'?'block':'none';
+  document.getElementById('add-bulk').style.display   = m==='bulk'  ?'block':'none';
+  document.getElementById('tog-single').className = 'ttbtn' + (m==='single'?' on':'');
+  document.getElementById('tog-bulk').className   = 'ttbtn' + (m==='bulk'  ?' on':'');
+};
+
+window.parseBulk = function() {
+  const text = document.getElementById('bulk-text').value;
+  const parsed = parseKorean(text);
+  const el = document.getElementById('bulk-preview');
+  if(!parsed.length) { el.innerHTML=''; return; }
+  el.innerHTML = `
+    <div class="parse-count">พบ <strong style="color:var(--green)">${parsed.length}</strong> ไอดี</div>
+    <div class="parse-preview">
+      ${parsed.map(x=>`<div class="parse-row"><span>${x.account}</span><span style="color:var(--muted)">${x.pw}</span><span style="color:var(--green)">✓</span></div>`).join('')}
+    </div>`;
+};
+
+function parseKorean(text) {
+  const out = [], re = /아이디\s+(\S+@\S+)\s+비번\s+(\S+)/g; let m;
+  while((m=re.exec(text))!==null) out.push({account:m[1],pw:m[2]});
+  return out;
+}
+
+window.addSingle = async function() {
+  const acc   = document.getElementById('f-id').value.trim();
+  const pw    = document.getElementById('f-pw').value.trim();
+  const os    = document.getElementById('f-os').value;
+  const gem   = parseInt(document.getElementById('f-gem').value)||0;
+  const price = parseInt(document.getElementById('f-price').value)||0;
+  const note  = document.getElementById('f-note').value.trim();
+  const status= document.getElementById('f-status').value;
+  if(!acc||!pw) { toast('❌ กรุณาใส่ไอดีและรหัสผ่าน','error'); return; }
+  const btn = document.getElementById('add-btn');
+  btn.disabled=true; btn.textContent='กำลังบันทึก...';
+  const id = 'op'+Date.now();
+  await set(ref(db,'ids/'+id),{id,account:acc,pw,os,gem,price,note,status,sold:false,soldAt:null});
+  toast('✅ เพิ่มไอดีแล้ว!','success');
+  ['f-id','f-pw','f-gem','f-price','f-note'].forEach(i=>document.getElementById(i).value='');
+  btn.disabled=false; btn.textContent='💾 บันทึก';
+  switchTab('stock');
+};
+
+window.addBulk = async function() {
+  const text  = document.getElementById('bulk-text').value;
+  const parsed= parseKorean(text);
+  if(!parsed.length) { toast('❌ ไม่พบไอดีในข้อความ','error'); return; }
+  const os    = document.getElementById('bulk-os').value;
+  const gem   = parseInt(document.getElementById('bulk-gem').value)||0;
+  const price = parseInt(document.getElementById('bulk-price').value)||0;
+  const status= document.getElementById('bulk-status').value;
+  const btn   = document.getElementById('bulk-btn');
+  btn.disabled=true; btn.textContent=`กำลังบันทึก ${parsed.length} ไอดี...`;
+  for(const item of parsed) {
+    const id = 'op'+Date.now()+Math.random().toString(36).slice(2,5);
+    await set(ref(db,'ids/'+id),{id,account:item.account,pw:item.pw,os,gem,price,note:'',status,sold:false,soldAt:null});
+  }
+  toast(`✅ เพิ่ม ${parsed.length} ไอดีแล้ว!`,'success');
+  btn.disabled=false; btn.textContent='💾 บันทึกทั้งหมด';
+  document.getElementById('bulk-text').value='';
+  document.getElementById('bulk-preview').innerHTML='';
+  switchTab('stock');
+};
+
+// ── HISTORY ──
+function renderHistory() {
+  const el = document.getElementById('tab-history');
+  if(!el) return;
+  if(!history.length) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>ยังไม่มีประวัติการขาย</p></div>'; return;
+  }
+  el.innerHTML = history.map(x=>`
+    <div class="hist-card">
+      <div style="flex:1;min-width:0">
+        <div class="hist-acc">${x.account}</div>
+        <div class="id-meta">
+          <span class="badge ${x.os==='Android'?'b-android':'b-ios'}">${x.os}</span>
+          <span class="gem">💎 ${(x.gem||0).toLocaleString()}</span>
+          ${x.price?`<span style="font-size:11px;color:var(--amber);font-weight:500">฿${x.price}</span>`:''}
+          ${x.note?`<span class="id-note">✦ ${x.note}</span>`:''}
+        </div>
+      </div>
+      <div class="hist-time">${x.soldAt||''}</div>
+    </div>`).join('');
+}
+
+// ── FIREBASE ──
+function initFirebase(cfg) {
+  const app = initializeApp(cfg);
+  db = getDatabase(app);
+  onValue(ref(db,'ids'), snap => {
+    ids = snap.val() ? Object.values(snap.val()) : [];
+    renderStats(); renderFilters(); renderList();
+    setSyncStatus('','ซิงค์แล้ว ✓');
+  }, () => setSyncStatus('err','เชื่อมต่อไม่ได้'));
+  onValue(ref(db,'history'), snap => {
+    history = snap.val() ? Object.values(snap.val()).sort((a,b)=>b.ts-a.ts) : [];
+    if(currentTab==='history') renderHistory();
+  });
+}
+
+// ── BOOT ──
+renderApp();
+initFirebase(FIREBASE_CONFIG);
+</script>
+</body>
+</html>
