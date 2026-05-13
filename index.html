@@ -38,6 +38,8 @@
   --card-keep-bg:#fffbf0;--card-keep-bd:#f5d97a;
   --card-web-bg:#f0f7ff; --card-web-bd:#bdd7f5;
   --card-sold-bg:#f8f8fb;--card-sold-bd:#e5e8f0;
+  --card-sending-bg:#fff7ed;--card-sending-bd:#fdba74;
+  --orange:#ea580c;--orange-bg:#ffedd5;
 }
 /* ── DARK THEME ── */
 [data-theme="dark"] {
@@ -71,6 +73,8 @@
   --card-keep-bg:#1a1200;--card-keep-bd:#4a3a00;
   --card-web-bg:#060f1a; --card-web-bd:#1a3050;
   --card-sold-bg:#12131a;--card-sold-bd:#2a2d3a;
+  --card-sending-bg:#1f1200;--card-sending-bd:#7c3000;
+  --orange:#fb923c;--orange-bg:#431407;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -157,6 +161,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .id-card.status-web{background:var(--card-web-bg);border-color:var(--card-web-bd);border-left:4px solid var(--blue)}
 .id-card.status-sell{background:var(--card-sell-bg);border-color:var(--card-sell-bd);border-left:4px solid var(--green)}
 .id-card.status-sold{background:var(--card-sold-bg);border-color:var(--card-sold-bd);border-left:4px solid var(--muted);opacity:.55}
+.id-card.status-sending{background:var(--card-sending-bg);border-color:var(--card-sending-bd);border-left:4px solid var(--orange)}
 .id-info{flex:1;min-width:0}
 .id-account{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .id-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -170,6 +175,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .b-android{background:var(--green-bg);color:var(--green)}
 .b-ios{background:var(--blue-bg);color:var(--blue)}
 .b-sold{background:var(--gray-bg);color:var(--gray)}
+.b-sending{background:var(--orange-bg);color:var(--orange)}
 
 /* STATUS DROPDOWN */
 .status-select{padding:4px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:11px;font-weight:500;cursor:pointer;outline:none;transition:border-color .15s}
@@ -185,6 +191,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .sell-btn{padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap}
 .sell-btn:hover{background:var(--accent);color:#fff}
 .sold-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;background:var(--gray-bg);color:var(--gray)}
+.sending-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange);animation:sendpulse 1.5s infinite}
+@keyframes sendpulse{0%,100%{opacity:1}50%{opacity:.6}}
+.return-btn{padding:6px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap}
+.return-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-bg)}
 
 /* EMPTY */
 .empty{text-align:center;padding:48px 20px;color:var(--muted)}
@@ -216,6 +226,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 /* HISTORY */
 .hist-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:6px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-sm)}
 .hist-acc{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;margin-bottom:3px}
+.hist-pw{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:2px}
 .hist-time{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
 .hist-price{font-size:13px;font-weight:700;color:var(--green);white-space:nowrap;flex-shrink:0}
 
@@ -297,6 +308,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="field"><label>ราคาขาย (฿)</label><input id="edit-price" type="number"></div>
         <div class="field"><label>หมายเหตุ</label><input id="edit-note" type="text"></div>
       </div>
+      <div class="fgrid" style="margin-bottom:0">
+        <div class="field"><label>สถานะ</label>
+          <select id="edit-status">
+            <option value="sell">Sell</option>
+            <option value="keep">Keep</option>
+            <option value="web">Web</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('edit')">ยกเลิก</button>
@@ -332,9 +352,13 @@ const FIREBASE_CONFIG = {
 };
 
 // ── DARK MODE ──
-function initDarkMode() {
+// Apply theme immediately (before renderApp) to prevent flash
+(function() {
   const saved = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
+})();
+function initDarkMode() {
+  const saved = localStorage.getItem('theme') || 'light';
   updateDarkBtn(saved);
 }
 function updateDarkBtn(theme) {
@@ -368,7 +392,7 @@ function fmtDate(ts) {
 }
 
 // ── STATUS helpers ──
-const STATUS_CARD = { sell:'status-sell', keep:'status-keep', web:'status-web', sold:'status-sold' };
+const STATUS_CARD = { sell:'status-sell', keep:'status-keep', web:'status-web', sold:'status-sold', sending:'status-sending' };
 
 // ── MODALS ──
 window.closeModal = function(type) {
@@ -413,7 +437,7 @@ function renderApp() {
       <div id="tab-add"     style="display:none"></div>
       <div id="tab-history" style="display:none"></div>
     </div>`;
-  initDarkMode();
+  initDarkMode();  // called after innerHTML set, so dark-btn exists
   renderSearch();
   renderAdd();
 }
@@ -431,11 +455,12 @@ window.switchTab = function(t) {
 
 // ── STATS ──
 function renderStats() {
-  const avail = ids.filter(x=>x.status!=='sold').length;
-  const sold  = ids.filter(x=>x.status==='sold').length;
-  const sell  = ids.filter(x=>x.status==='sell').length;
-  const keep  = ids.filter(x=>x.status==='keep').length;
-  const web   = ids.filter(x=>x.status==='web').length;
+  const avail   = ids.filter(x=>!['sold'].includes(x.status)).length;
+  const sold    = ids.filter(x=>x.status==='sold').length;
+  const sell    = ids.filter(x=>x.status==='sell').length;
+  const keep    = ids.filter(x=>x.status==='keep').length;
+  const web     = ids.filter(x=>x.status==='web').length;
+  const sending = ids.filter(x=>x.status==='sending').length;
   const el = document.getElementById('stats-area');
   if(!el) return;
   el.innerHTML = `
@@ -444,6 +469,7 @@ function renderStats() {
       <div class="stat"><div class="lbl">Sell</div><div class="val val-blue">${sell}</div></div>
       <div class="stat"><div class="lbl">Keep</div><div class="val val-amber">${keep}</div></div>
       <div class="stat"><div class="lbl">Web</div><div class="val val-purple">${web}</div></div>
+      ${sending?`<div class="stat"><div class="lbl">กำลังส่ง</div><div class="val" style="color:var(--orange)">${sending}</div></div>`:''}
       <div class="stat"><div class="lbl">ขายแล้ว</div><div class="val val-gray">${sold}</div></div>
     </div>`;
 }
@@ -484,10 +510,10 @@ function renderFilters() {
         `).join('')}
         <span class="filter-label" style="margin-left:4px">สถานะ:</span>
         ${[
-          {v:'all',l:'ทั้งหมด'},{v:'sell',l:'Sell'},{v:'keep',l:'Keep'},{v:'web',l:'Web'},{v:'sold',l:'ขายแล้ว'}
+          {v:'all',l:'ทั้งหมด'},{v:'sell',l:'Sell'},{v:'keep',l:'Keep'},{v:'web',l:'Web'},{v:'sending',l:'🟠 กำลังส่ง'},{v:'sold',l:'ขายแล้ว'}
         ].map(({v,l})=>{
           let cls='';
-          if(filterStatus===v) cls = v==='sell'?'on-green':v==='keep'?'on-amber':v==='web'?'on-blue':v==='sold'?'on-red':'on';
+          if(filterStatus===v) cls = v==='sell'?'on-green':v==='keep'?'on-amber':v==='web'?'on-blue':v==='sold'?'on-red':v==='sending'?'on-amber':'on';
           return `<button class="chip ${cls}" onclick="setF('status','${v}')">${l}</button>`;
         }).join('')}
       </div>
@@ -591,7 +617,14 @@ function cardHTML(x) {
         ${createdStr}
       </div>
       <div class="id-actions">
-        ${!isSold?`
+        ${isSold?`
+          <span class="sold-badge">✓ ขายแล้ว</span>
+          <button class="icon-btn del" onclick="confirmDelete('${x.id}')" title="ลบ">🗑️</button>
+        `:status==='sending'?`
+          <span class="sending-badge">📤 กำลังส่ง...</span>
+          <button class="return-btn" onclick="returnStock('${x.id}')" title="คืนสต็อก">↩ คืน</button>
+          <button class="sell-btn" onclick="confirmSell('${x.id}')">✅ ขายแล้ว</button>
+        `:`
           <select class="status-select" onchange="changeStatus('${x.id}',this.value)">
             <option value="sell" ${status==='sell'?'selected':''}>Sell</option>
             <option value="keep" ${status==='keep'?'selected':''}>Keep</option>
@@ -600,9 +633,6 @@ function cardHTML(x) {
           <button class="icon-btn copy" onclick="copyID('${x.id}',this)" title="คัดลอก account:password">📋</button>
           <button class="icon-btn edit" onclick="openEdit('${x.id}')" title="แก้ไข">✏️</button>
           <button class="sell-btn" onclick="confirmSell('${x.id}')">ขายแล้ว</button>
-        `:`
-          <span class="sold-badge">✓ ขายแล้ว</span>
-          <button class="icon-btn del" onclick="confirmDelete('${x.id}')" title="ลบ">🗑️</button>
         `}
       </div>
     </div>`;
@@ -628,14 +658,35 @@ window.saveNote = async function(idVal) {
   if(btn){ btn.classList.remove('show'); btn.textContent='✓'; setTimeout(()=>btn.textContent='บันทึก',1200); }
 };
 
-// ── COPY (format: account:pw) ──
-window.copyID = function(idVal, btn) {
+// ── COPY (format: account:pw) → auto mark as "sending" ──
+window.copyID = async function(idVal, btn) {
   const item = ids.find(x=>x.id===idVal);
   if(!item) return;
-  navigator.clipboard.writeText(`${item.account}:${item.pw}`).then(()=>{
-    btn.textContent='✅'; btn.classList.add('copied');
-    setTimeout(()=>{ btn.textContent='📋'; btn.classList.remove('copied'); },1500);
-  });
+  try {
+    await navigator.clipboard.writeText(`${item.account}:${item.pw}`);
+  } catch(e) {
+    // fallback for mobile browsers that block clipboard without user gesture timing
+    const ta = document.createElement('textarea');
+    ta.value = `${item.account}:${item.pw}`;
+    ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  btn.textContent='✅'; btn.classList.add('copied');
+  setTimeout(()=>{ btn.textContent='📋'; btn.classList.remove('copied'); }, 1500);
+  // Auto-set status to "sending" so partner sees it immediately
+  if(item.status !== 'sending' && item.status !== 'sold') {
+    await update(ref(db,'ids/'+idVal), {status:'sending'});
+  }
+  toast('📋 คัดลอกแล้ว — สถานะเปลี่ยนเป็น "กำลังส่ง"', 'success');
+};
+
+// ── RETURN TO STOCK ──
+window.returnStock = async function(idVal) {
+  if(!db) return;
+  await update(ref(db,'ids/'+idVal), {status:'sell'});
+  toast('↩ คืนสต็อกแล้ว', '');
 };
 
 // ── SELL ──
@@ -657,7 +708,7 @@ window.doSell = async function() {
   const now = new Date().toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
   const ts = Date.now();
   await update(ref(db,'ids/'+pendingId),{status:'sold',sold:true,soldAt:now});
-  await set(ref(db,'history/'+ts),{account:item.account,os:item.os,gem:item.gem,price:item.price||0,note:item.note||'',soldAt:now,ts});
+  await set(ref(db,'history/'+ts),{account:item.account,pw:item.pw||'',os:item.os,gem:item.gem,price:item.price||0,note:item.note||'',soldAt:now,ts});
   toast('✅ ล็อกไอดีแล้ว!','success');
   closeModal('sell');
 };
@@ -705,18 +756,20 @@ window.openEdit = function(idVal) {
   document.getElementById('edit-gem').value     = item.gem||'';
   document.getElementById('edit-price').value   = item.price||'';
   document.getElementById('edit-note').value    = item.note||'';
+  document.getElementById('edit-status').value  = item.status||'sell';
   document.getElementById('modal-edit').classList.add('show');
 };
 window.doEdit = async function() {
   if(!pendingEditId||!db) return;
-  const acc   = document.getElementById('edit-account').value.trim();
-  const pw    = document.getElementById('edit-pw').value.trim();
-  const os    = document.getElementById('edit-os').value;
-  const gem   = parseInt(document.getElementById('edit-gem').value)||0;
-  const price = parseInt(document.getElementById('edit-price').value)||0;
-  const note  = document.getElementById('edit-note').value.trim();
+  const acc    = document.getElementById('edit-account').value.trim();
+  const pw     = document.getElementById('edit-pw').value.trim();
+  const os     = document.getElementById('edit-os').value;
+  const gem    = parseInt(document.getElementById('edit-gem').value)||0;
+  const price  = parseInt(document.getElementById('edit-price').value)||0;
+  const note   = document.getElementById('edit-note').value.trim();
+  const status = document.getElementById('edit-status').value;
   if(!acc||!pw){ toast('❌ กรุณาใส่ไอดีและรหัสผ่าน','error'); return; }
-  await update(ref(db,'ids/'+pendingEditId),{account:acc,pw,os,gem,price,note});
+  await update(ref(db,'ids/'+pendingEditId),{account:acc,pw,os,gem,price,note,status});
   toast('✅ แก้ไขแล้ว!','success');
   closeModal('edit');
 };
@@ -730,7 +783,8 @@ function renderAdd() {
       <div class="form-title">เพิ่มไอดีใหม่</div>
       <div class="tab-toggle">
         <button class="ttbtn on" id="tog-single" onclick="toggleMode('single')">เพิ่มทีละอัน</button>
-        <button class="ttbtn"   id="tog-bulk"   onclick="toggleMode('bulk')">วางจากเกาหลี 🇰🇷</button>
+        <button class="ttbtn"   id="tog-bulk"   onclick="toggleMode('bulk')">เกาหลี 🇰🇷</button>
+        <button class="ttbtn"   id="tog-g2g"    onclick="toggleMode('g2g')">G2G CSV</button>
       </div>
       <div id="add-single">
         <div class="fgrid full"><div class="field"><label>ไอดี / อีเมล</label><input id="f-id" type="text" placeholder="910398425@whomail.asia"></div></div>
@@ -768,14 +822,33 @@ function renderAdd() {
         <div id="bulk-preview"></div>
         <button class="submit-btn" id="bulk-btn" onclick="addBulk()" style="margin-top:12px">💾 บันทึกทั้งหมด</button>
       </div>
+      <div id="add-g2g" style="display:none">
+        <div class="field" style="margin-bottom:12px">
+          <label>วาง CSV จาก G2G (รวม header)</label>
+          <textarea class="bulk-area" id="g2g-text" placeholder="G2G Code ID,Account ID,Password,..." oninput="parseG2G()"></textarea>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>ระบบ</label><select id="g2g-os"><option>Android</option><option>iOS</option></select></div>
+          <div class="field"><label>จำนวนเพชร</label><input id="g2g-gem" type="number" placeholder="8400"></div>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>ราคาขาย (฿)</label><input id="g2g-price" type="number" placeholder="350"></div>
+          <div class="field"><label>สถานะ</label>
+            <select id="g2g-status"><option value="sell">Sell</option><option value="keep">Keep</option><option value="web">Web</option></select>
+          </div>
+        </div>
+        <div id="g2g-preview"></div>
+        <button class="submit-btn" id="g2g-btn" onclick="addG2G()" style="margin-top:12px">💾 บันทึกทั้งหมด</button>
+      </div>
     </div>`;
 }
 
 window.toggleMode = function(m) {
-  document.getElementById('add-single').style.display = m==='single'?'block':'none';
-  document.getElementById('add-bulk').style.display   = m==='bulk'?'block':'none';
-  document.getElementById('tog-single').className = 'ttbtn'+(m==='single'?' on':'');
-  document.getElementById('tog-bulk').className   = 'ttbtn'+(m==='bulk'?' on':'');
+  ['single','bulk','g2g'].forEach(t => {
+    document.getElementById('add-'+t).style.display = t===m?'block':'none';
+    const b = document.getElementById('tog-'+t);
+    if(b) b.className = 'ttbtn'+(t===m?' on':'');
+  });
 };
 
 window.parseBulk = function() {
@@ -839,6 +912,77 @@ window.addBulk = async function() {
   switchTab('stock');
 };
 
+// ── G2G CSV PARSE ──
+function parseG2GCSVLine(line) {
+  // Handle quoted fields with commas inside
+  const fields = [];
+  let cur = '', inQ = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(c==='"'){ inQ=!inQ; }
+    else if(c===','&&!inQ){ fields.push(cur.trim()); cur=''; }
+    else { cur+=c; }
+  }
+  fields.push(cur.trim());
+  return fields;
+}
+
+function parseG2GCSV(text) {
+  const lines = text.trim().split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  // Parse header to find column indices
+  const header = parseG2GCSVLine(lines[0]).map(h=>h.toLowerCase().replace(/['"]/g,'').trim());
+  const accIdx = header.findIndex(h=>h==='account id');
+  const pwIdx  = header.findIndex(h=>h==='password');
+  if(accIdx===-1||pwIdx===-1) return [];
+  const out = [];
+  for(let i=1;i<lines.length;i++){
+    const cols = parseG2GCSVLine(lines[i]);
+    const acc = (cols[accIdx]||'').replace(/^'/,'').trim(); // remove leading apostrophe G2G adds
+    const pw  = (cols[pwIdx] ||'').replace(/^'/,'').trim();
+    if(acc && pw) out.push({account:acc, pw});
+  }
+  return out;
+}
+
+window.parseG2G = function() {
+  const text = document.getElementById('g2g-text').value;
+  const parsed = parseG2GCSV(text);
+  const el = document.getElementById('g2g-preview');
+  if(!parsed.length){
+    el.innerHTML = text.trim() ? `<div class="parse-count" style="color:var(--red)">❌ ไม่พบข้อมูล — ตรวจสอบว่า paste รวม header row ด้วย</div>` : '';
+    return;
+  }
+  el.innerHTML = `
+    <div class="parse-count">พบ <strong style="color:var(--green)">${parsed.length}</strong> ไอดี</div>
+    <div class="parse-preview">
+      ${parsed.map(x=>`<div class="parse-row"><span>${x.account}</span><span style="color:var(--muted)">${x.pw}</span><span style="color:var(--green)">✓</span></div>`).join('')}
+    </div>`;
+};
+
+window.addG2G = async function() {
+  const text   = document.getElementById('g2g-text').value;
+  const parsed = parseG2GCSV(text);
+  if(!parsed.length){ toast('❌ ไม่พบไอดีใน CSV','error'); return; }
+  const os    = document.getElementById('g2g-os').value;
+  const gem   = parseInt(document.getElementById('g2g-gem').value)||0;
+  const price = parseInt(document.getElementById('g2g-price').value)||0;
+  const status= document.getElementById('g2g-status').value;
+  const btn   = document.getElementById('g2g-btn');
+  btn.disabled=true; btn.textContent=`กำลังบันทึก ${parsed.length} ไอดี...`;
+  const baseTs = Date.now();
+  for(let i=0;i<parsed.length;i++){
+    const item = parsed[i];
+    const id = 'op'+(baseTs+i)+Math.random().toString(36).slice(2,5);
+    await set(ref(db,'ids/'+id),{id,account:item.account,pw:item.pw,os,gem,price,note:'',status,sold:false,soldAt:null,createdAt:baseTs+i});
+  }
+  toast(`✅ เพิ่ม ${parsed.length} ไอดีจาก G2G แล้ว!`,'success');
+  btn.disabled=false; btn.textContent='💾 บันทึกทั้งหมด';
+  document.getElementById('g2g-text').value='';
+  document.getElementById('g2g-preview').innerHTML='';
+  switchTab('stock');
+};
+
 // ── HISTORY ──
 function renderHistory() {
   const el = document.getElementById('tab-history');
@@ -856,6 +1000,7 @@ function renderHistory() {
     <div class="hist-card">
       <div style="flex:1;min-width:0">
         <div class="hist-acc">${x.account}</div>
+        ${x.pw?`<div class="hist-pw">🔑 ${x.pw}</div>`:''}
         <div class="id-meta">
           <span class="badge ${x.os==='Android'?'b-android':'b-ios'}">${x.os||''}</span>
           <span class="gem">💎 ${(x.gem||0).toLocaleString()}</span>
