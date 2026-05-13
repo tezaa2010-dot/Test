@@ -230,6 +230,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .hist-time{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
 .hist-price{font-size:13px;font-weight:700;color:var(--green);white-space:nowrap;flex-shrink:0}
 
+/* COST SETTINGS */
+.cost-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.cost-row:last-child{border-bottom:none}
+.cost-gem{font-size:13px;font-weight:600;color:var(--text);min-width:130px}
+.cost-input-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .15s;flex:1;min-width:120px;max-width:180px}
+.cost-input-wrap:focus-within{border-color:var(--accent)}
+.cost-baht{padding:0 10px;font-size:13px;color:var(--muted);font-weight:500;background:transparent}
+.cost-input{border:none;outline:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);padding:8px 8px 8px 0;width:100%}
+.cost-save-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.cost-save-btn:hover{background:var(--accent);color:#fff}
+
+/* PROFIT */
+.profit-row{padding:14px 0;border-bottom:1px solid var(--border)}
+.profit-row:last-child{border-bottom:none}
+.profit-today{background:var(--accent-light);border-radius:10px;padding:14px 12px;margin:-2px -12px;border-bottom:none!important;margin-bottom:4px}
+.profit-date{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.today-badge{font-size:10px;font-weight:600;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px}
+.profit-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.profit-col{text-align:center}
+.profit-lbl{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.profit-val{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.profit-val.blue{color:var(--blue)}.profit-val.amber{color:var(--amber)}.profit-val.green{color:var(--green)}.profit-val.red{color:var(--red)}.profit-val.gray{color:var(--gray)}
+.val-red{color:var(--red)}
+
 /* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center;z-index:200;padding:20px}
 .modal-bg.show{display:flex}
@@ -308,6 +332,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="field"><label>ราคาขาย (฿)</label><input id="edit-price" type="number"></div>
         <div class="field"><label>หมายเหตุ</label><input id="edit-note" type="text"></div>
       </div>
+      <div class="fgrid" style="margin-bottom:10px">
+        <div class="field"><label>ต้นทุนเฉพาะอัน (฿) <span style="font-weight:400;color:var(--muted)">ไม่กรอก=ใช้ default</span></label><input id="edit-cost" type="number" placeholder="ว่าง = ใช้ default ตามเพชร"></div>
+      </div>
       <div class="fgrid" style="margin-bottom:0">
         <div class="field"><label>สถานะ</label>
           <select id="edit-status">
@@ -332,7 +359,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, onValue, set, get, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 // ── STATE ──
-let db = null, ids = [], historyData = [];
+let db = null, ids = [], historyData = [], costsData = {};
 let filterOs = 'all', filterStatus = 'all', searchQ = '';
 let groupBy = 'gem';
 let sortBy = 'createdAt_desc';
@@ -425,6 +452,8 @@ function renderApp() {
       <button class="nav-btn active" id="nav-stock"   onclick="switchTab('stock')">📦 สต็อก</button>
       <button class="nav-btn"        id="nav-add"     onclick="switchTab('add')">＋ เพิ่มไอดี</button>
       <button class="nav-btn"        id="nav-history" onclick="switchTab('history')">📋 ประวัติ</button>
+      <button class="nav-btn"        id="nav-profit"  onclick="switchTab('profit')">💰 กำไร</button>
+      <button class="nav-btn"        id="nav-cost"    onclick="switchTab('cost')">⚙️ ต้นทุน</button>
     </div>
     <div class="main">
       <div id="stats-area"></div>
@@ -436,6 +465,8 @@ function renderApp() {
       </div>
       <div id="tab-add"     style="display:none"></div>
       <div id="tab-history" style="display:none"></div>
+      <div id="tab-profit"  style="display:none"></div>
+      <div id="tab-cost"    style="display:none"></div>
     </div>`;
   initDarkMode();  // called after innerHTML set, so dark-btn exists
   renderSearch();
@@ -444,13 +475,15 @@ function renderApp() {
 
 window.switchTab = function(t) {
   currentTab = t;
-  ['stock','add','history'].forEach(x => {
+  ['stock','add','history','profit','cost'].forEach(x => {
     document.getElementById('tab-'+x).style.display = x===t?'block':'none';
     const b = document.getElementById('nav-'+x);
     if(b) b.className = 'nav-btn'+(x===t?' active':'');
   });
   if(t==='history') renderHistory();
   if(t==='stock') { renderStats(); renderFilters(); renderToolbar(); renderList(); }
+  if(t==='profit') renderProfit();
+  if(t==='cost') renderCost();
 };
 
 // ── STATS ──
@@ -707,8 +740,15 @@ window.doSell = async function() {
   if(live&&live.status==='sold'){ toast('❌ ไอดีนี้ถูกขายไปแล้ว!','error'); closeModal('sell'); return; }
   const now = new Date().toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
   const ts = Date.now();
+  // Resolve cost: costOverride on item > default from costsData by gem
+  const gemKey = String(item.gem||0);
+  const costDefault = costsData[gemKey] != null ? costsData[gemKey] : null;
+  const costFinal = item.costOverride != null ? item.costOverride : (costDefault != null ? costDefault : 0);
   await update(ref(db,'ids/'+pendingId),{status:'sold',sold:true,soldAt:now});
-  await set(ref(db,'history/'+ts),{account:item.account,pw:item.pw||'',os:item.os,gem:item.gem,price:item.price||0,note:item.note||'',soldAt:now,ts});
+  await set(ref(db,'history/'+ts),{
+    account:item.account, pw:item.pw||'', os:item.os, gem:item.gem,
+    price:item.price||0, cost:costFinal, note:item.note||'', soldAt:now, ts
+  });
   toast('✅ ล็อกไอดีแล้ว!','success');
   closeModal('sell');
 };
@@ -756,6 +796,7 @@ window.openEdit = function(idVal) {
   document.getElementById('edit-gem').value     = item.gem||'';
   document.getElementById('edit-price').value   = item.price||'';
   document.getElementById('edit-note').value    = item.note||'';
+  document.getElementById('edit-cost').value    = item.costOverride!=null ? item.costOverride : '';
   document.getElementById('edit-status').value  = item.status||'sell';
   document.getElementById('modal-edit').classList.add('show');
 };
@@ -768,8 +809,13 @@ window.doEdit = async function() {
   const price  = parseInt(document.getElementById('edit-price').value)||0;
   const note   = document.getElementById('edit-note').value.trim();
   const status = document.getElementById('edit-status').value;
+  const costRaw = document.getElementById('edit-cost').value.trim();
+  const costOverride = costRaw !== '' ? (parseInt(costRaw)||0) : null;
   if(!acc||!pw){ toast('❌ กรุณาใส่ไอดีและรหัสผ่าน','error'); return; }
-  await update(ref(db,'ids/'+pendingEditId),{account:acc,pw,os,gem,price,note,status});
+  const updateData = {account:acc,pw,os,gem,price,note,status};
+  // store null to remove override, or the number
+  updateData.costOverride = costOverride;
+  await update(ref(db,'ids/'+pendingEditId), updateData);
   toast('✅ แก้ไขแล้ว!','success');
   closeModal('edit');
 };
@@ -1012,6 +1058,165 @@ function renderHistory() {
     </div>`).join('')}`;
 }
 
+// ── COST SETTINGS ──
+function renderCost() {
+  const el = document.getElementById('tab-cost');
+  if(!el) return;
+  // Get all unique gem amounts from current ids + existing cost keys
+  const gemSet = new Set([...ids.map(x=>x.gem||0), ...Object.keys(costsData).map(Number)]);
+  const gems = [...gemSet].filter(g=>g>0).sort((a,b)=>b-a);
+  el.innerHTML = `
+    <div class="form-card">
+      <div class="form-title">⚙️ ตั้งต้นทุนตามจำนวนเพชร</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6">ตั้งครั้งเดียวใช้กับทุกไอดีที่เพชรเท่ากัน · สามารถ override เฉพาะไอดีได้ที่ปุ่ม ✏️ แก้ไข</p>
+      <div id="cost-rows">
+        ${gems.length ? gems.map(g=>`
+        <div class="cost-row" id="crow-${g}">
+          <div class="cost-gem">💎 ${Number(g).toLocaleString()} เพชร</div>
+          <div class="cost-input-wrap">
+            <span class="cost-baht">฿</span>
+            <input class="cost-input" id="cost-input-${g}" type="number" min="0"
+              value="${costsData[String(g)]!=null?costsData[String(g)]:''}"
+              placeholder="ยังไม่ตั้ง" onkeydown="if(event.key==='Enter') saveCost(${g})">
+          </div>
+          <button class="cost-save-btn" onclick="saveCost(${g})">บันทึก</button>
+        </div>`).join('') : '<div class="empty" style="padding:32px"><div class="empty-icon">💎</div><p>ยังไม่มีข้อมูลเพชร</p><small>เพิ่มไอดีก่อนเพื่อให้แสดงรายการเพชร</small></div>'}
+      </div>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <div class="form-title" style="font-size:14px;margin-bottom:12px">เพิ่มต้นทุนสำหรับเพชรอื่นๆ</div>
+        <div class="fgrid">
+          <div class="field"><label>จำนวนเพชร</label><input id="new-cost-gem" type="number" placeholder="เช่น 6000"></div>
+          <div class="field"><label>ต้นทุน (฿)</label><input id="new-cost-price" type="number" placeholder="เช่น 250"></div>
+        </div>
+        <button class="submit-btn" style="margin-top:0" onclick="addNewCost()">➕ เพิ่ม</button>
+      </div>
+    </div>`;
+}
+
+window.saveCost = async function(gem) {
+  if(!db) return;
+  const val = document.getElementById('cost-input-'+gem).value.trim();
+  const cost = val !== '' ? (parseInt(val)||0) : null;
+  if(cost === null) {
+    await remove(ref(db,'costs/'+gem));
+    toast('🗑️ ลบต้นทุนแล้ว','');
+  } else {
+    await set(ref(db,'costs/'+gem), cost);
+    toast(`✅ บันทึกต้นทุน 💎${Number(gem).toLocaleString()} = ฿${cost.toLocaleString()}`, 'success');
+  }
+};
+
+window.addNewCost = async function() {
+  if(!db) return;
+  const gem   = parseInt(document.getElementById('new-cost-gem').value)||0;
+  const price = parseInt(document.getElementById('new-cost-price').value)||0;
+  if(!gem){ toast('❌ กรุณาใส่จำนวนเพชร','error'); return; }
+  await set(ref(db,'costs/'+gem), price);
+  toast(`✅ เพิ่มต้นทุน 💎${gem.toLocaleString()} = ฿${price.toLocaleString()}`, 'success');
+  document.getElementById('new-cost-gem').value='';
+  document.getElementById('new-cost-price').value='';
+};
+
+// ── PROFIT ──
+let profitView = 'daily'; // 'daily' | 'monthly'
+let profitDate = ''; // YYYY-MM for monthly, YYYY-MM-DD for daily
+
+function getTsDateKey(ts, mode) {
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return mode==='monthly' ? `${y}-${m}` : `${y}-${m}-${day}`;
+}
+
+function fmtMonthThai(ym) {
+  // ym = "YYYY-MM"
+  const [y,m] = ym.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+function fmtDayThai(ymd) {
+  const [y,m,d] = ymd.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+
+function renderProfit() {
+  const el = document.getElementById('tab-profit');
+  if(!el) return;
+
+  // Build map: dateKey -> {revenue, cost, count}
+  const map = {};
+  historyData.forEach(x => {
+    if(!x.ts) return;
+    const dk = getTsDateKey(x.ts, profitView);
+    if(!map[dk]) map[dk] = {revenue:0, cost:0, count:0};
+    map[dk].revenue += (x.price||0);
+    map[dk].cost    += (x.cost||0);
+    map[dk].count   += 1;
+  });
+  const keys = Object.keys(map).sort((a,b)=>b.localeCompare(a));
+
+  // Today / this month key
+  const nowKey = getTsDateKey(Date.now(), profitView);
+  const todayData = map[nowKey] || {revenue:0, cost:0, count:0};
+  const todayProfit = todayData.revenue - todayData.cost;
+
+  el.innerHTML = `
+    <div class="form-card" style="margin-bottom:14px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <div class="tab-toggle" style="margin-bottom:0">
+          <button class="ttbtn${profitView==='daily'?' on':''}" onclick="setProfitView('daily')">รายวัน</button>
+          <button class="ttbtn${profitView==='monthly'?' on':''}" onclick="setProfitView('monthly')">รายเดือน</button>
+        </div>
+      </div>
+      <div class="stats" style="margin-bottom:0">
+        <div class="stat">
+          <div class="lbl">${profitView==='daily'?'วันนี้':'เดือนนี้'} — รายรับ</div>
+          <div class="val val-blue">฿${todayData.revenue.toLocaleString()}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">${profitView==='daily'?'วันนี้':'เดือนนี้'} — ต้นทุน</div>
+          <div class="val val-amber">฿${todayData.cost.toLocaleString()}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">${profitView==='daily'?'วันนี้':'เดือนนี้'} — กำไร</div>
+          <div class="val ${todayProfit>=0?'val-green':'val-red'}">฿${todayProfit.toLocaleString()}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">${profitView==='daily'?'วันนี้':'เดือนนี้'} — จำนวน</div>
+          <div class="val val-gray">${todayData.count} ไอดี</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-title" style="font-size:14px;margin-bottom:12px">ย้อนหลัง</div>
+      ${!keys.length ? '<div class="empty" style="padding:24px"><div class="empty-icon">📭</div><p>ยังไม่มีประวัติการขาย</p></div>' :
+        keys.map(k=>{
+          const d = map[k];
+          const profit = d.revenue - d.cost;
+          const label = profitView==='monthly' ? fmtMonthThai(k) : fmtDayThai(k);
+          const isToday = k===nowKey;
+          return `
+          <div class="profit-row${isToday?' profit-today':''}">
+            <div class="profit-date">${label}${isToday?` <span class="today-badge">วันนี้</span>`:''}</div>
+            <div class="profit-cols">
+              <div class="profit-col"><div class="profit-lbl">รายรับ</div><div class="profit-val blue">฿${d.revenue.toLocaleString()}</div></div>
+              <div class="profit-col"><div class="profit-lbl">ต้นทุน</div><div class="profit-val amber">฿${d.cost.toLocaleString()}</div></div>
+              <div class="profit-col"><div class="profit-lbl">กำไร</div><div class="profit-val ${profit>=0?'green':'red'}">฿${profit.toLocaleString()}</div></div>
+              <div class="profit-col"><div class="profit-lbl">จำนวน</div><div class="profit-val gray">${d.count} ไอดี</div></div>
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>`;
+}
+
+window.setProfitView = function(v) {
+  profitView = v;
+  renderProfit();
+};
+
 // ── FIREBASE ──
 function initFirebase(cfg) {
   const app = initializeApp(cfg);
@@ -1024,6 +1229,12 @@ function initFirebase(cfg) {
   onValue(ref(db,'history'), snap => {
     historyData = snap.val() ? Object.values(snap.val()).sort((a,b)=>b.ts-a.ts) : [];
     if(currentTab==='history') renderHistory();
+    if(currentTab==='profit')  renderProfit();
+  });
+  onValue(ref(db,'costs'), snap => {
+    costsData = snap.val() || {};
+    if(currentTab==='cost')   renderCost();
+    if(currentTab==='profit') renderProfit();
   });
 }
 
