@@ -317,6 +317,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
+<!-- COPY CONFIRM MODAL -->
+<div class="modal-bg" id="modal-copy">
+  <div class="modal">
+    <h3>📋 ยืนยันการก็อปไอดี</h3>
+    <p id="modal-copy-text"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('copy')">ยกเลิก</button>
+      <button class="btn-confirm" onclick="doCopy()">✅ ก็อปเลย</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT MODAL -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal edit-modal">
@@ -427,6 +439,7 @@ window.closeModal = function(type) {
   if(type==='sell')  pendingId = null;
   if(type==='del')   pendingDeleteId = null;
   if(type==='edit')  pendingEditId = null;
+  if(type==='copy')  { pendingCopyId = null; pendingCopyBtn = null; }
 };
 
 // ── RENDER SHELL ──
@@ -691,28 +704,53 @@ window.saveNote = async function(idVal) {
   if(btn){ btn.classList.remove('show'); btn.textContent='✓'; setTimeout(()=>btn.textContent='บันทึก',1200); }
 };
 
-// ── COPY (format: account:pw) → auto mark as "sending" ──
-window.copyID = async function(idVal, btn) {
+// ── COPY — show confirmation first ──
+let pendingCopyId = null;
+let pendingCopyBtn = null;
+
+window.copyID = function(idVal, btn) {
   const item = ids.find(x=>x.id===idVal);
   if(!item) return;
+  pendingCopyId = idVal;
+  pendingCopyBtn = btn;
+  const osLabel = item.os || '';
+  const gemLabel = (item.gem||0).toLocaleString();
+  document.getElementById('modal-copy-text').innerHTML =
+    `<strong>${item.account}</strong><br>` +
+    `💎 <strong style="font-size:15px;color:var(--accent)">${gemLabel} เพชร</strong> · ${osLabel}` +
+    `<br><br><span style="font-size:12px;color:var(--muted)">สิ่งที่จะถูกก็อป:</span><br>` +
+    `<code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:4px;line-height:1.6">` +
+    `💎 ${gemLabel} เพชร<br>${item.account}:${item.pw}</code>`;
+  document.getElementById('modal-copy').classList.add('show');
+};
+
+window.doCopy = async function() {
+  if(!pendingCopyId) return;
+  const item = ids.find(x=>x.id===pendingCopyId);
+  if(!item) return;
+  const gemLabel = (item.gem||0).toLocaleString();
+  const copyText = `💎 ${gemLabel} เพชร\n${item.account}:${item.pw}`;
   try {
-    await navigator.clipboard.writeText(`${item.account}:${item.pw}`);
+    await navigator.clipboard.writeText(copyText);
   } catch(e) {
-    // fallback for mobile browsers that block clipboard without user gesture timing
     const ta = document.createElement('textarea');
-    ta.value = `${item.account}:${item.pw}`;
+    ta.value = copyText;
     ta.style.position='fixed'; ta.style.opacity='0';
     document.body.appendChild(ta); ta.focus(); ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
   }
-  btn.textContent='✅'; btn.classList.add('copied');
-  setTimeout(()=>{ btn.textContent='📋'; btn.classList.remove('copied'); }, 1500);
-  // Auto-set status to "sending" so partner sees it immediately
-  if(item.status !== 'sending' && item.status !== 'sold') {
-    await update(ref(db,'ids/'+idVal), {status:'sending'});
+  if(pendingCopyBtn) {
+    pendingCopyBtn.textContent='✅'; pendingCopyBtn.classList.add('copied');
+    setTimeout(()=>{ pendingCopyBtn.textContent='📋'; pendingCopyBtn.classList.remove('copied'); }, 1500);
   }
-  toast('📋 คัดลอกแล้ว — สถานะเปลี่ยนเป็น "กำลังส่ง"', 'success');
+  if(item.status !== 'sending' && item.status !== 'sold') {
+    await update(ref(db,'ids/'+pendingCopyId), {status:'sending'});
+  }
+  toast(`📋 ก็อปแล้ว — 💎 ${gemLabel} เพชร — สถานะเป็น "กำลังส่ง"`, 'success');
+  closeModal('copy');
+  pendingCopyId = null;
+  pendingCopyBtn = null;
 };
 
 // ── RETURN TO STOCK ──
