@@ -1406,9 +1406,10 @@ function initFirebase(cfg) {
   // Auth state listener — single source of truth
   onAuthStateChanged(auth, user => {
     if(user) {
-      // Logged in → show app
+      // Logged in → show app then load data
       renderApp();
-      initDB();
+      // Small delay to ensure DOM is ready and auth token is fully initialized
+      setTimeout(() => initDB(), 100);
     } else {
       // Logged out → show login
       db = null; ids = []; historyData = []; costsData = [];
@@ -1418,16 +1419,39 @@ function initFirebase(cfg) {
 }
 
 function initDB() {
+  let idsLoaded = false;
+
+  // Timeout fallback — if Firebase doesn't respond in 10s, show error + retry button
+  const loadTimeout = setTimeout(() => {
+    if (!idsLoaded) {
+      setSyncStatus('err', 'โหลดไม่ได้ — กดรีเฟรช');
+      const listEl = document.getElementById('id-list-area');
+      if (listEl) listEl.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">⚠️</div>
+          <p>โหลดข้อมูลไม่สำเร็จ</p>
+          <button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">🔄 โหลดใหม่</button>
+        </div>`;
+    }
+  }, 10000);
+
   onValue(ref(db,'ids'), snap => {
+    idsLoaded = true;
+    clearTimeout(loadTimeout);
     ids = snap.val() ? Object.values(snap.val()) : [];
     renderStats(); renderFilters(); renderToolbar(); renderList();
     setSyncStatus('','ซิงค์แล้ว ✓');
-  }, ()=>setSyncStatus('err','เชื่อมต่อไม่ได้'));
+  }, () => {
+    clearTimeout(loadTimeout);
+    setSyncStatus('err','เชื่อมต่อไม่ได้');
+  });
+
   onValue(ref(db,'history'), snap => {
     historyData = snap.val() ? Object.values(snap.val()).sort((a,b)=>b.ts-a.ts) : [];
     if(currentTab==='history') renderHistory();
     if(currentTab==='profit')  renderProfit();
   });
+
   onValue(ref(db,'costs'), snap => {
     costsData = snap.val() || {};
     if(currentTab==='cost')   renderCost();
