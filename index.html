@@ -269,6 +269,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .btn-danger:hover{opacity:.85}
 .edit-modal{max-width:460px}
 
+/* LOGIN SCREEN */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:var(--bg)}
+.login-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);text-align:center}
+.login-logo{width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 20px;box-shadow:0 4px 14px rgba(99,102,241,.35)}
+.login-title{font-size:20px;font-weight:700;margin-bottom:6px;letter-spacing:-.3px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.login-field{text-align:left;margin-bottom:14px}
+.login-field label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.login-field input{width:100%;padding:10px 14px;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:var(--accent);background:var(--white)}
+.login-btn{width:100%;padding:11px;border-radius:10px;background:var(--accent);border:none;color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;margin-top:6px;box-shadow:0 2px 8px rgba(99,102,241,.3)}
+.login-btn:hover{background:var(--accent-h)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{font-size:12px;color:var(--red);margin-top:10px;min-height:18px}
+/* LOGOUT BTN in header */
+.logout-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;opacity:0;transition:all .25s;z-index:300;white-space:nowrap;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -368,10 +386,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, onValue, set, get, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, onValue, set, get, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 // ── STATE ──
-let db = null, ids = [], historyData = [], costsData = {};
+let db = null, auth = null, ids = [], historyData = [], costsData = {};
 let filterOs = 'all', filterStatus = 'all', searchQ = '';
 let groupBy = 'gem';
 let sortBy = 'createdAt_desc';
@@ -430,6 +449,16 @@ function fmtDate(ts) {
   });
 }
 
+// ── XSS PROTECTION ──
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 // ── STATUS helpers ──
 const STATUS_CARD = { sell:'status-sell', keep:'status-keep', web:'status-web', sold:'status-sold', sending:'status-sending' };
 
@@ -459,6 +488,7 @@ function renderApp() {
           <span id="slbl">กำลังเชื่อมต่อ...</span>
         </div>
         <button class="dark-btn" id="dark-btn" onclick="toggleDark()" title="เปลี่ยน theme">🌙</button>
+        <button class="logout-btn" onclick="doLogout()" title="ออกจากระบบ">ออก</button>
       </div>
     </div>
     <div class="nav">
@@ -588,12 +618,13 @@ function renderToolbar() {
 
 // ── LIST ──
 function getFiltered() {
+  const q = searchQ.toLowerCase(); // fix: normalize here so uppercase input still matches
   return ids.filter(x => {
     if(filterOs!=='all' && x.os!==filterOs) return false;
     if(filterStatus!=='all' && (x.status||'sell')!==filterStatus) return false;
-    if(searchQ) {
+    if(q) {
       const hay = `${x.account} ${x.pw} ${x.note||''} ${x.gem}`.toLowerCase();
-      if(!hay.includes(searchQ)) return false;
+      if(!hay.includes(q)) return false;
     }
     return true;
   });
@@ -639,46 +670,50 @@ function renderList() {
 }
 
 function cardHTML(x) {
-  const status = x.status||'sell';
-  const isSold = status==='sold';
-  const noteVal = (x.note||'').replace(/"/g,'&quot;');
-  const priceStr = x.price ? `<span style="font-size:11px;color:var(--amber);font-weight:600">฿${x.price}</span>` : '';
+  const status  = x.status||'sell';
+  const isSold  = status==='sold';
+  const safeId  = esc(x.id);
+  const safeAcc = esc(x.account);
+  const safePw  = esc(x.pw);
+  const safeOs  = esc(x.os||'');
+  const safeNote= esc(x.note||'');
+  const priceStr   = x.price ? `<span style="font-size:11px;color:var(--amber);font-weight:600">฿${esc(x.price)}</span>` : '';
   const createdStr = x.createdAt ? `<div class="id-created">📅 เพิ่ม ${fmtDate(x.createdAt)}</div>` : '';
   return `
     <div class="id-card ${STATUS_CARD[status]||''}">
       <div class="id-info">
-        <div class="id-account">${x.account}</div>
+        <div class="id-account">${safeAcc}</div>
         <div class="id-meta">
-          <span class="id-pw">${x.pw}</span>
-          <span class="badge ${x.os==='Android'?'b-android':'b-ios'}">${x.os||''}</span>
+          <span class="id-pw">${safePw}</span>
+          <span class="badge ${x.os==='Android'?'b-android':'b-ios'}">${safeOs}</span>
           <span class="gem">💎 ${(x.gem||0).toLocaleString()}</span>
           ${priceStr}
         </div>
         ${!isSold?`
         <div class="note-row">
-          <input class="note-input" id="note-${x.id}" value="${noteVal}" placeholder="เพิ่มหมายเหตุ..."
-            oninput="onNoteInput('${x.id}')" onkeydown="if(event.key==='Enter') saveNote('${x.id}')">
-          <button class="note-save-btn" id="note-btn-${x.id}" onclick="saveNote('${x.id}')">บันทึก</button>
-        </div>`:x.note?`<div style="margin-top:5px;font-size:11px;color:var(--gray)">📝 ${x.note}</div>`:''}
+          <input class="note-input" id="note-${safeId}" value="${safeNote}" placeholder="เพิ่มหมายเหตุ..."
+            oninput="onNoteInput('${safeId}')" onkeydown="if(event.key==='Enter') saveNote('${safeId}')">
+          <button class="note-save-btn" id="note-btn-${safeId}" onclick="saveNote('${safeId}')">บันทึก</button>
+        </div>`:x.note?`<div style="margin-top:5px;font-size:11px;color:var(--gray)">📝 ${safeNote}</div>`:''}
         ${createdStr}
       </div>
       <div class="id-actions">
         ${isSold?`
           <span class="sold-badge">✓ ขายแล้ว</span>
-          <button class="icon-btn del" onclick="confirmDelete('${x.id}')" title="ลบ">🗑️</button>
+          <button class="icon-btn del" onclick="confirmDelete('${safeId}')" title="ลบ">🗑️</button>
         `:status==='sending'?`
           <span class="sending-badge">📤 กำลังส่ง...</span>
-          <button class="return-btn" onclick="returnStock('${x.id}')" title="คืนสต็อก">↩ คืน</button>
-          <button class="sell-btn" onclick="confirmSell('${x.id}')">✅ ขายแล้ว</button>
+          <button class="return-btn" onclick="returnStock('${safeId}')" title="คืนสต็อก">↩ คืน</button>
+          <button class="sell-btn" onclick="confirmSell('${safeId}')">✅ ขายแล้ว</button>
         `:`
-          <select class="status-select" onchange="changeStatus('${x.id}',this.value)">
+          <select class="status-select" onchange="changeStatus('${safeId}',this.value)">
             <option value="sell" ${status==='sell'?'selected':''}>Sell</option>
             <option value="keep" ${status==='keep'?'selected':''}>Keep</option>
             <option value="web"  ${status==='web' ?'selected':''}>Web</option>
           </select>
-          <button class="icon-btn copy" onclick="copyID('${x.id}',this)" title="คัดลอก account:password">📋</button>
-          <button class="icon-btn edit" onclick="openEdit('${x.id}')" title="แก้ไข">✏️</button>
-          <button class="sell-btn" onclick="confirmSell('${x.id}')">ขายแล้ว</button>
+          <button class="icon-btn copy" onclick="copyID('${safeId}',this)" title="คัดลอก account:password">📋</button>
+          <button class="icon-btn edit" onclick="openEdit('${safeId}')" title="แก้ไข">✏️</button>
+          <button class="sell-btn" onclick="confirmSell('${safeId}')">ขายแล้ว</button>
         `}
       </div>
     </div>`;
@@ -687,7 +722,11 @@ function cardHTML(x) {
 // ── CHANGE STATUS ──
 window.changeStatus = async function(idVal, newStatus) {
   if(!db) return;
-  await update(ref(db,'ids/'+idVal),{status:newStatus});
+  try {
+    await update(ref(db,'ids/'+idVal),{status:newStatus});
+  } catch(e) {
+    toast('❌ เปลี่ยนสถานะไม่สำเร็จ','error');
+  }
 };
 
 // ── NOTE INLINE ──
@@ -700,8 +739,12 @@ window.saveNote = async function(idVal) {
   const input = document.getElementById('note-'+idVal);
   const btn   = document.getElementById('note-btn-'+idVal);
   if(!input) return;
-  await update(ref(db,'ids/'+idVal),{note:input.value.trim()});
-  if(btn){ btn.classList.remove('show'); btn.textContent='✓'; setTimeout(()=>btn.textContent='บันทึก',1200); }
+  try {
+    await update(ref(db,'ids/'+idVal),{note:input.value.trim()});
+    if(btn){ btn.classList.remove('show'); btn.textContent='✓'; setTimeout(()=>btn.textContent='บันทึก',1200); }
+  } catch(e) {
+    toast('❌ บันทึกหมายเหตุไม่สำเร็จ','error');
+  }
 };
 
 // ── COPY — show confirmation first ──
@@ -713,14 +756,15 @@ window.copyID = function(idVal, btn) {
   if(!item) return;
   pendingCopyId = idVal;
   pendingCopyBtn = btn;
-  const osLabel = item.os || '';
+  const osLabel  = item.os || '';
   const gemLabel = (item.gem||0).toLocaleString();
+  const priceLabel = item.price ? ` (฿${item.price.toLocaleString()})` : '';
   document.getElementById('modal-copy-text').innerHTML =
-    `<strong>${item.account}</strong><br>` +
-    `💎 <strong style="font-size:15px;color:var(--accent)">${gemLabel} เพชร</strong> · ${osLabel}` +
+    `<strong>${esc(item.account)}</strong><br>` +
+    `💎 <strong style="font-size:15px;color:var(--accent)">${gemLabel} เพชร</strong> · ${esc(osLabel)}${priceLabel}` +
     `<br><br><span style="font-size:12px;color:var(--muted)">สิ่งที่จะถูกก็อป:</span><br>` +
     `<code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:inline-block;margin-top:4px;line-height:1.6">` +
-    `💎 ${gemLabel} เพชร<br>${item.account}:${item.pw}</code>`;
+    `${esc(osLabel)} 💎 ${gemLabel}${priceLabel}<br>${esc(item.account)}:${esc(item.pw)}</code>`;
   document.getElementById('modal-copy').classList.add('show');
 };
 
@@ -728,8 +772,10 @@ window.doCopy = async function() {
   if(!pendingCopyId) return;
   const item = ids.find(x=>x.id===pendingCopyId);
   if(!item) return;
-  const gemLabel = (item.gem||0).toLocaleString();
-  const copyText = `💎 ${gemLabel} เพชร\n${item.account}:${item.pw}`;
+  const gemLabel  = (item.gem||0).toLocaleString();
+  const osLabel   = item.os || '';
+  const priceStr  = item.price ? ` (฿${item.price.toLocaleString()})` : '';
+  const copyText  = `${osLabel} 💎 ${gemLabel}${priceStr}\n${item.account}:${item.pw}`;
   try {
     await navigator.clipboard.writeText(copyText);
   } catch(e) {
@@ -745,9 +791,11 @@ window.doCopy = async function() {
     setTimeout(()=>{ pendingCopyBtn.textContent='📋'; pendingCopyBtn.classList.remove('copied'); }, 1500);
   }
   if(item.status !== 'sending' && item.status !== 'sold') {
-    await update(ref(db,'ids/'+pendingCopyId), {status:'sending'});
+    try {
+      await update(ref(db,'ids/'+pendingCopyId), {status:'sending'});
+    } catch(e) { /* non-critical */ }
   }
-  toast(`📋 ก็อปแล้ว — 💎 ${gemLabel} เพชร — สถานะเป็น "กำลังส่ง"`, 'success');
+  toast(`📋 ก็อปแล้ว — ${osLabel} 💎 ${gemLabel}${priceStr}`, 'success');
   closeModal('copy');
   pendingCopyId = null;
   pendingCopyBtn = null;
@@ -756,8 +804,12 @@ window.doCopy = async function() {
 // ── RETURN TO STOCK ──
 window.returnStock = async function(idVal) {
   if(!db) return;
-  await update(ref(db,'ids/'+idVal), {status:'sell'});
-  toast('↩ คืนสต็อกแล้ว', '');
+  try {
+    await update(ref(db,'ids/'+idVal), {status:'sell'});
+    toast('↩ คืนสต็อกแล้ว', '');
+  } catch(e) {
+    toast('❌ คืนสต็อกไม่สำเร็จ','error');
+  }
 };
 
 // ── SELL ──
@@ -773,21 +825,32 @@ window.doSell = async function() {
   if(!pendingId||!db) return;
   const item = ids.find(x=>x.id===pendingId);
   if(!item) return;
-  const snap = await get(ref(db,'ids/'+pendingId));
-  const live = snap.val();
-  if(live&&live.status==='sold'){ toast('❌ ไอดีนี้ถูกขายไปแล้ว!','error'); closeModal('sell'); return; }
-  const now = new Date().toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
-  const ts = Date.now();
-  // Resolve cost: costOverride on item > default from costsData by gem
-  const gemKey = String(item.gem||0);
-  const costDefault = costsData[gemKey] != null ? costsData[gemKey] : null;
-  const costFinal = item.costOverride != null ? item.costOverride : (costDefault != null ? costDefault : 0);
-  await update(ref(db,'ids/'+pendingId),{status:'sold',sold:true,soldAt:now});
-  await set(ref(db,'history/'+ts),{
-    account:item.account, pw:item.pw||'', os:item.os, gem:item.gem,
-    price:item.price||0, cost:costFinal, note:item.note||'', soldAt:now, ts
-  });
-  toast('✅ ล็อกไอดีแล้ว!','success');
+  const idRef = ref(db,'ids/'+pendingId);
+  try {
+    // Use transaction to prevent race condition — atomically check & update
+    const result = await runTransaction(idRef, (current) => {
+      if(!current) return; // item deleted by someone else — abort
+      if(current.status==='sold') return; // already sold — abort (returns undefined = abort)
+      return { ...current, status:'sold', sold:true, soldAt: new Date().toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) };
+    });
+    if(!result.committed) {
+      toast('❌ ไอดีนี้ถูกขายไปแล้ว!','error');
+      closeModal('sell');
+      return;
+    }
+    const ts = Date.now();
+    const now = result.snapshot.val()?.soldAt || '';
+    const gemKey = String(item.gem||0);
+    const costDefault = costsData[gemKey] != null ? costsData[gemKey] : null;
+    const costFinal = item.costOverride != null ? item.costOverride : (costDefault != null ? costDefault : 0);
+    await set(ref(db,'history/'+ts),{
+      account:item.account, pw:item.pw||'', os:item.os, gem:item.gem,
+      price:item.price||0, cost:costFinal, note:item.note||'', soldAt:now, ts
+    });
+    toast('✅ ล็อกไอดีแล้ว!','success');
+  } catch(e) {
+    toast('❌ เกิดข้อผิดพลาด กรุณาลองใหม่','error');
+  }
   closeModal('sell');
 };
 
@@ -802,8 +865,12 @@ window.confirmDelete = function(idVal) {
 };
 window.doDelete = async function() {
   if(!pendingDeleteId||!db) return;
-  await remove(ref(db,'ids/'+pendingDeleteId));
-  toast('🗑️ ลบไอดีแล้ว','success');
+  try {
+    await remove(ref(db,'ids/'+pendingDeleteId));
+    toast('🗑️ ลบไอดีแล้ว','success');
+  } catch(e) {
+    toast('❌ ลบไม่สำเร็จ','error');
+  }
   closeModal('del');
 };
 
@@ -818,8 +885,12 @@ window.confirmClearSold = function() {
 window.doClearSold = async function() {
   if(!db) return;
   const soldItems = ids.filter(x=>x.status==='sold');
-  await Promise.all(soldItems.map(x=>remove(ref(db,'ids/'+x.id))));
-  toast(`🗑️ ลบ ${soldItems.length} รายการแล้ว`,'success');
+  try {
+    await Promise.all(soldItems.map(x=>remove(ref(db,'ids/'+x.id))));
+    toast(`🗑️ ลบ ${soldItems.length} รายการแล้ว`,'success');
+  } catch(e) {
+    toast('❌ ล้างไม่สำเร็จ','error');
+  }
   closeModal('clear');
 };
 
@@ -850,12 +921,16 @@ window.doEdit = async function() {
   const costRaw = document.getElementById('edit-cost').value.trim();
   const costOverride = costRaw !== '' ? (parseInt(costRaw)||0) : null;
   if(!acc||!pw){ toast('❌ กรุณาใส่ไอดีและรหัสผ่าน','error'); return; }
-  const updateData = {account:acc,pw,os,gem,price,note,status};
-  // store null to remove override, or the number
-  updateData.costOverride = costOverride;
-  await update(ref(db,'ids/'+pendingEditId), updateData);
-  toast('✅ แก้ไขแล้ว!','success');
-  closeModal('edit');
+  if(gem < 0){ toast('❌ จำนวนเพชรต้องไม่ติดลบ','error'); return; }
+  if(price < 0){ toast('❌ ราคาต้องไม่ติดลบ','error'); return; }
+  const updateData = {account:acc,pw,os,gem,price,note,status,costOverride};
+  try {
+    await update(ref(db,'ids/'+pendingEditId), updateData);
+    toast('✅ แก้ไขแล้ว!','success');
+    closeModal('edit');
+  } catch(e) {
+    toast('❌ บันทึกไม่สำเร็จ','error');
+  }
 };
 
 // ── ADD FORM ──
@@ -962,15 +1037,21 @@ window.addSingle = async function() {
   const note  = document.getElementById('f-note').value.trim();
   const status= document.getElementById('f-status').value;
   if(!acc||!pw){ toast('❌ กรุณาใส่ไอดีและรหัสผ่าน','error'); return; }
+  if(gem < 0){ toast('❌ จำนวนเพชรต้องไม่ติดลบ','error'); return; }
+  if(price < 0){ toast('❌ ราคาต้องไม่ติดลบ','error'); return; }
   const btn = document.getElementById('add-btn');
   btn.disabled=true; btn.textContent='กำลังบันทึก...';
   const id = 'op'+Date.now();
   const createdAt = Date.now();
-  await set(ref(db,'ids/'+id),{id,account:acc,pw,os,gem,price,note,status,sold:false,soldAt:null,createdAt});
-  toast('✅ เพิ่มไอดีแล้ว!','success');
-  ['f-id','f-pw','f-gem','f-price','f-note'].forEach(i=>document.getElementById(i).value='');
+  try {
+    await set(ref(db,'ids/'+id),{id,account:acc,pw,os,gem,price,note,status,sold:false,soldAt:null,createdAt});
+    toast('✅ เพิ่มไอดีแล้ว!','success');
+    ['f-id','f-pw','f-gem','f-price','f-note'].forEach(i=>document.getElementById(i).value='');
+    switchTab('stock');
+  } catch(e) {
+    toast('❌ บันทึกไม่สำเร็จ','error');
+  }
   btn.disabled=false; btn.textContent='💾 บันทึก';
-  switchTab('stock');
 };
 
 window.addBulk = async function() {
@@ -1135,12 +1216,16 @@ window.saveCost = async function(gem) {
   if(!db) return;
   const val = document.getElementById('cost-input-'+gem).value.trim();
   const cost = val !== '' ? (parseInt(val)||0) : null;
-  if(cost === null) {
-    await remove(ref(db,'costs/'+gem));
-    toast('🗑️ ลบต้นทุนแล้ว','');
-  } else {
-    await set(ref(db,'costs/'+gem), cost);
-    toast(`✅ บันทึกต้นทุน 💎${Number(gem).toLocaleString()} = ฿${cost.toLocaleString()}`, 'success');
+  try {
+    if(cost === null) {
+      await remove(ref(db,'costs/'+gem));
+      toast('🗑️ ลบต้นทุนแล้ว','');
+    } else {
+      await set(ref(db,'costs/'+gem), cost);
+      toast(`✅ บันทึกต้นทุน 💎${Number(gem).toLocaleString()} = ฿${cost.toLocaleString()}`, 'success');
+    }
+  } catch(e) {
+    toast('❌ บันทึกต้นทุนไม่สำเร็จ','error');
   }
 };
 
@@ -1149,10 +1234,15 @@ window.addNewCost = async function() {
   const gem   = parseInt(document.getElementById('new-cost-gem').value)||0;
   const price = parseInt(document.getElementById('new-cost-price').value)||0;
   if(!gem){ toast('❌ กรุณาใส่จำนวนเพชร','error'); return; }
-  await set(ref(db,'costs/'+gem), price);
-  toast(`✅ เพิ่มต้นทุน 💎${gem.toLocaleString()} = ฿${price.toLocaleString()}`, 'success');
-  document.getElementById('new-cost-gem').value='';
-  document.getElementById('new-cost-price').value='';
+  if(price < 0){ toast('❌ ราคาต้องไม่ติดลบ','error'); return; }
+  try {
+    await set(ref(db,'costs/'+gem), price);
+    toast(`✅ เพิ่มต้นทุน 💎${gem.toLocaleString()} = ฿${price.toLocaleString()}`, 'success');
+    document.getElementById('new-cost-gem').value='';
+    document.getElementById('new-cost-price').value='';
+  } catch(e) {
+    toast('❌ บันทึกต้นทุนไม่สำเร็จ','error');
+  }
 };
 
 // ── PROFIT ──
@@ -1255,10 +1345,79 @@ window.setProfitView = function(v) {
   renderProfit();
 };
 
+// ── LOGIN SCREEN ──
+function renderLogin(errMsg) {
+  document.getElementById('app').innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-logo">⚔️</div>
+        <div class="login-title">One Piece ID Shop</div>
+        <div class="login-sub">เข้าสู่ระบบเพื่อจัดการสต็อก</div>
+        <div class="login-field">
+          <label>Email</label>
+          <input id="l-email" type="email" placeholder="your@email.com" autocomplete="email"
+            onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input id="l-pw" type="password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <button class="login-btn" id="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+        <div class="login-err" id="login-err">${errMsg||''}</div>
+      </div>
+    </div>`;
+  // focus email field
+  setTimeout(() => document.getElementById('l-email')?.focus(), 50);
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('l-email')?.value.trim();
+  const pw    = document.getElementById('l-pw')?.value;
+  if(!email||!pw) { document.getElementById('login-err').textContent='กรุณาใส่ email และ password'; return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='กำลังเข้าสู่ระบบ...';
+  document.getElementById('login-err').textContent='';
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+    // onAuthStateChanged will fire and call renderApp + initDB
+  } catch(e) {
+    let msg = 'เข้าสู่ระบบไม่สำเร็จ';
+    if(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found')
+      msg = 'Email หรือ Password ไม่ถูกต้อง';
+    else if(e.code==='auth/too-many-requests')
+      msg = 'ลองหลายครั้งเกินไป กรุณารอสักครู่';
+    document.getElementById('login-err').textContent = msg;
+    btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
+  }
+};
+
+window.doLogout = async function() {
+  try { await signOut(auth); } catch(e) {}
+  // onAuthStateChanged will fire and show login screen
+};
+
 // ── FIREBASE ──
 function initFirebase(cfg) {
   const app = initializeApp(cfg);
-  db = getDatabase(app);
+  db   = getDatabase(app);
+  auth = getAuth(app);
+
+  // Auth state listener — single source of truth
+  onAuthStateChanged(auth, user => {
+    if(user) {
+      // Logged in → show app
+      renderApp();
+      initDB();
+    } else {
+      // Logged out → show login
+      db = null; ids = []; historyData = []; costsData = [];
+      renderLogin();
+    }
+  });
+}
+
+function initDB() {
   onValue(ref(db,'ids'), snap => {
     ids = snap.val() ? Object.values(snap.val()) : [];
     renderStats(); renderFilters(); renderToolbar(); renderList();
@@ -1277,8 +1436,8 @@ function initFirebase(cfg) {
 }
 
 // ── BOOT ──
-renderApp();
 initFirebase(FIREBASE_CONFIG);
+
 </script>
 </body>
 </html>
